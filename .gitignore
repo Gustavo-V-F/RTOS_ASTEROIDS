@@ -39,7 +39,6 @@
 .settings/
 
 # CubeMX project files
-*.ioc
 .mxproject
 
 # VSCode project files
