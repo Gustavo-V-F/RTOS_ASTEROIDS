@@ -202,65 +202,121 @@ uint32_t index_XY(uint32_t x, uint32_t y)
 	return x + (84*y);
 }
 
-void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, uint32_t x0, uint32_t y0)
+void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, uint32_t *x0, uint32_t *y0)
 {
 	signed int x1, y1, x2, y2;
 
-	x1 = *x_p-x0;
-	y1 = *y_p-y0;
+	x1 = *x_p-*x0;
+	y1 = *y_p-*y0;
 
-	x2 = (x1*cos30(30)-y1*sin30(30))+(x0*1000);
-	y2 = (x1*sin30(30)+y1*cos30(30))+(y0*1000);
+	x2 = (x1*cos30(30)-y1*sin30(30))+(*x0*1000);
+	y2 = (x1*sin30(30)+y1*cos30(30))+(*y0*1000);
 
 	if(x2 < 0)
+	{
 		*x_p = 83000+x2;
-	else
+		*x0 = 83+*x0;
+	}else if(x2 > 83000)
+	{
+		*x_p = x2-83000;
+		*x0 = *x0-83;
+	}else
 		*x_p = x2;
-	
+
 	if(y2 < 0)
+	{
 		*y_p = 47000+y2;
-	else
+		*y0 = 47+*y0;
+	}else if(y2 > 47000)
+	{
+		*y_p = y2-47000;
+		*y0 = *y0-47;
+	}else
 		*y_p = y2;
 
-	if((*x_p/1000) < 10)
-		*x_p = round_number(*x_p, 1)/1000;
-	else
+	if(*x_p < 10000)
+	{
+		if(*x_p < 1000)
+		{
+			if(*x_p >= (1000 >> 2))
+				*x_p = 1;
+			else
+				*x_p = 0;
+		}else
+			*x_p = round_number(*x_p, 1)/1000;
+	}else
 		*x_p = round_number(*x_p, 2)/1000;
 
-	if((*y_p/1000) < 10)
-		*y_p = round_number(*y_p, 1)/1000;
-	else
+	if(*y_p < 10000)
+	{
+		if(*y_p < 1000)
+		{
+			if(*y_p >= (1000 >> 2))
+				*y_p = 1;
+			else
+				*y_p = 0;
+		}else
+			*y_p = round_number(*y_p, 1)/1000;
+	}else
 		*y_p = round_number(*y_p, 2)/1000;
 }
 
-void rotate_counter_clock_wise(uint32_t *x_p, uint32_t *y_p, uint32_t x0, uint32_t y0)
+void rotate_counter_clock_wise(uint32_t *x_p, uint32_t *y_p, uint32_t *x0, uint32_t *y0)
 {
 	signed int x1, y1, x2, y2;
 
-	x1 = *x_p-x0;
-	y1 = *y_p-y0;
+	x1 = *x_p-*x0;
+	y1 = *y_p-*y0;
 
-	x2 = (x1*cos30(30)+y1*sin30(30))+(x0*1000);
-	y2 = (y1*cos30(30)-x1*sin30(30))+(y0*1000);
+	x2 = (x1*cos30(30)+y1*sin30(30))+(*x0*1000);
+	y2 = (y1*cos30(30)-x1*sin30(30))+(*y0*1000);
 
 	if(x2 < 0)
+	{
 		*x_p = 83000+x2;
-	else
+		*x0 = 83+*x0;
+	}else if(x2 > 83000)
+	{
+		*x_p = x2-83000;
+		*x0 = *x0-83;
+	}else
 		*x_p = x2;
-	
+
 	if(y2 < 0)
+	{
 		*y_p = 47000+y2;
-	else
+		*y0 = 47+*y0;
+	}else if(y2 > 47000)
+	{
+		*y_p = y2-47000;
+		*y0 = *y0-47;
+	}else
 		*y_p = y2;
 
-	if((*x_p/1000) < 10)
-		*x_p = round_number(*x_p, 1)/1000;
-	else
+	if(*x_p < 10000)
+	{
+		if(*x_p < 1000)
+		{
+			if(*x_p >= (1000 >> 2))
+				*x_p = 1;
+			else
+				*x_p = 0;
+		}else
+			*x_p = round_number(*x_p, 1)/1000;
+	}else
 		*x_p = round_number(*x_p, 2)/1000;
 
-	if((*y_p/1000) < 10)
-		*y_p = round_number(*y_p, 1)/1000;
-	else
+	if(*y_p < 10000)
+	{
+		if(*y_p < 1000)
+		{
+			if(*y_p >= (1000 >> 2))
+				*y_p = 1;
+			else
+				*y_p = 0;
+		}else
+			*y_p = round_number(*y_p, 1)/1000;
+	}else
 		*y_p = round_number(*y_p, 2)/1000;
 }
 

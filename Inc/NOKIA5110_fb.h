@@ -40,7 +40,7 @@ struct pontos_t{
 	uint32_t x2;
 	uint32_t y2;
 	uint32_t x3;
-	uint32_t y3;	
+	uint32_t y3;
 };
 
 struct figura_t
@@ -55,8 +55,8 @@ void data_LCD(uint32_t data);
 void inic_LCD(); 
 void goto_XY(uint32_t x, uint32_t y);
 uint32_t index_XY(uint32_t x, uint32_t y);
-void rotate_clock_wise(uint32_t *x, uint32_t *y, uint32_t x0, uint32_t y0);
-void rotate_counter_clock_wise(uint32_t *x, uint32_t *y, uint32_t x0, uint32_t y0);
+void rotate_clock_wise(uint32_t *x, uint32_t *y, uint32_t *x0, uint32_t *y0);
+void rotate_counter_clock_wise(uint32_t *x, uint32_t *y, uint32_t *x0, uint32_t *y0);
 void escreve2fb(unsigned char imagem[])	;
 void imprime_LCD();
 void imprime_area_LCD(struct pontos_t *p);

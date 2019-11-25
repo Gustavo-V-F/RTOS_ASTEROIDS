@@ -54,7 +54,7 @@ osThreadId Space_ship_handle;
 uint32_t ADC_buffer[2];
 uint32_t Valor_ADC[2];
 osThreadId LCD_print_handle;
-struct pontos_t Space_ship_points, Asteroid_points[2];
+struct pontos_t Space_ship_points, Asteroid_points[2], Asteroid_reference[2];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -359,6 +359,7 @@ void Space_ship_task(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   signed int i = 0;
+  uint32_t Space_ship_reference_x = 41, Space_ship_reference_y = 23;
 
   Space_ship_points.x1 = 39;
   Space_ship_points.y1 = 21;
@@ -379,6 +380,18 @@ void Space_ship_task(void const * argument)
   Asteroid_points[1].y2 = 7;
   Asteroid_points[1].x3 = 77;
   Asteroid_points[1].y3 = 13;
+  Asteroid_reference[0].x1 = 73;
+  Asteroid_reference[0].x2 = 73;
+  Asteroid_reference[0].x3 = 73;
+  Asteroid_reference[0].y1 = 7;
+  Asteroid_reference[0].y2 = 7;
+  Asteroid_reference[0].y3 = 7;
+  Asteroid_reference[1].x1 = 73;
+  Asteroid_reference[1].x2 = 73;
+  Asteroid_reference[1].x3 = 73;
+  Asteroid_reference[1].y1 = 7;
+  Asteroid_reference[1].y2 = 7;
+  Asteroid_reference[1].y3 = 7;
   /* Infinite loop */
   for(;;)
   {
@@ -390,17 +403,17 @@ void Space_ship_task(void const * argument)
     desenha_hexagono(Asteroid_points, 0);
     osDelay(1);
 
-    if(i < 360)
+    if(i < 180)
     {
-      rotate_clock_wise(&Space_ship_points.x1, &Space_ship_points.y1, 41, 23);
-      rotate_clock_wise(&Space_ship_points.x2, &Space_ship_points.y2, 41, 23);
-      rotate_clock_wise(&Space_ship_points.x3, &Space_ship_points.y3, 41, 23);
-      rotate_clock_wise(&Asteroid_points[0].x1, &Asteroid_points[0].y1, 73, 7);
-      rotate_clock_wise(&Asteroid_points[0].x2, &Asteroid_points[0].y2, 73, 7);
-      rotate_clock_wise(&Asteroid_points[0].x3, &Asteroid_points[0].y3, 73, 7);
-      rotate_clock_wise(&Asteroid_points[1].x1, &Asteroid_points[1].y1, 73, 7);
-      rotate_clock_wise(&Asteroid_points[1].x2, &Asteroid_points[1].y2, 73, 7);
-      rotate_clock_wise(&Asteroid_points[1].x3, &Asteroid_points[1].y3, 73, 7);
+      rotate_counter_clock_wise(&Space_ship_points.x1, &Space_ship_points.y1, &Space_ship_reference_x, &Space_ship_reference_y);
+      rotate_counter_clock_wise(&Space_ship_points.x2, &Space_ship_points.y2, &Space_ship_reference_x, &Space_ship_reference_y);
+      rotate_counter_clock_wise(&Space_ship_points.x3, &Space_ship_points.y3, &Space_ship_reference_x, &Space_ship_reference_y);
+      rotate_clock_wise(&Asteroid_points[0].x1, &Asteroid_points[0].y1, &Asteroid_reference[0].x1, &Asteroid_reference[0].y1);
+      rotate_clock_wise(&Asteroid_points[0].x2, &Asteroid_points[0].y2, &Asteroid_reference[0].x2, &Asteroid_reference[0].y2);
+      rotate_clock_wise(&Asteroid_points[0].x3, &Asteroid_points[0].y3, &Asteroid_reference[0].x3, &Asteroid_reference[0].y3);
+      rotate_clock_wise(&Asteroid_points[1].x1, &Asteroid_points[1].y1, &Asteroid_reference[1].x1, &Asteroid_reference[1].y1);
+      rotate_clock_wise(&Asteroid_points[1].x2, &Asteroid_points[1].y2, &Asteroid_reference[1].x2, &Asteroid_reference[1].y2);
+      rotate_clock_wise(&Asteroid_points[1].x3, &Asteroid_points[1].y3, &Asteroid_reference[1].x3, &Asteroid_reference[1].y3);
       
       i += 30;
     }
