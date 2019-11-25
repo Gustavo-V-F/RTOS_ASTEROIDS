@@ -115,6 +115,11 @@ const unsigned char nr_peq [] = {
 };  // 0 1 2 3 4 5 6 7 8 9 -
 //----------------------------------------------------------------------------------------------
 
+static const uint32_t cos_table[] = 
+{
+	1000, 866, 500, 0
+};
+
 // Espelho da tela - FRAME BUFFER - necess�rio na escrita p/ alterar pixels sem alterar os demais dentro de um byte
 static unsigned char fb[504];		// 84 colunas X 6 bancos (1 byte) =  504 bytes um frame para o LCD
 static uint32_t indice_fb;			// indice para uso no fb
@@ -153,8 +158,8 @@ void data_LCD(uint32_t data)
 	//Send the data
 	CLR_CE();
 	do								// MSB primeiro
-	{	i--;
-		if(tst_bit(data,i))
+	{	
+		if(tst_bit(data,--i))
 			SET_DIN();
 		else
 			CLR_DIN();
@@ -172,13 +177,13 @@ void inic_LCD()
 	_delay_us(10);
 	SET_RST();
 
-	cmd_LCD(0x21);			//Tell LCD that extended commands follow
-	cmd_LCD(0xB0);			//Set LCD Vop (Contrast): Try 0xB1(good @ 3.3V) or 0xBF if your display is too dark
-	cmd_LCD(0x04);			//Set Temp coefficent
-	cmd_LCD(0x14);			//LCD bias mode 1:48: Try 0x13 or 0x14
+	//cmd_LCD(0x21);			//Tell LCD that extended commands follow
+	//cmd_LCD(0xB1);			//Set LCD Vop (Contrast): Try 0xB1(good @ 3.3V) or 0xBF if your display is too dark
+	//cmd_LCD(0x04);			//Set Temp coefficent
+	//cmd_LCD(0x14);			//LCD bias mode 1:48: Try 0x13 or 0x14
 
 	cmd_LCD(0x20);			//We must send 0x20 before modifying the display control mode
-	cmd_LCD(0x0C);			//Set display control, normal mode. 0x0D for inverse
+	cmd_LCD(0x0D);			//Set display control, normal mode. 0x0D for inverse
 }
 //----------------------------------------------------------------------------------------------- 
 void goto_XY(uint32_t x, uint32_t y)  // 0<=x<=83  0<=y<=5
@@ -188,6 +193,77 @@ void goto_XY(uint32_t x, uint32_t y)  // 0<=x<=83  0<=y<=5
   
 	indice_fb =  x + (84*y);		// indice para ser empregado no fb
 }
+
+uint32_t index_XY(uint32_t x, uint32_t y)
+{
+	if(y>5)	y=5;
+	if(x>84)	x=83;
+  
+	return x + (84*y);
+}
+
+void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, uint32_t x0, uint32_t y0)
+{
+	signed int x1, y1, x2, y2;
+
+	x1 = *x_p-x0;
+	y1 = *y_p-y0;
+
+	x2 = (x1*cos30(30)-y1*sin30(30))+(x0*1000);
+	y2 = (x1*sin30(30)+y1*cos30(30))+(y0*1000);
+
+	if(x2 < 0)
+		*x_p = 83000+x2;
+	else
+		*x_p = x2;
+	
+	if(y2 < 0)
+		*y_p = 47000+y2;
+	else
+		*y_p = y2;
+
+	if((*x_p/1000) < 10)
+		*x_p = round_number(*x_p, 1)/1000;
+	else
+		*x_p = round_number(*x_p, 2)/1000;
+
+	if((*y_p/1000) < 10)
+		*y_p = round_number(*y_p, 1)/1000;
+	else
+		*y_p = round_number(*y_p, 2)/1000;
+}
+
+void rotate_counter_clock_wise(uint32_t *x_p, uint32_t *y_p, uint32_t x0, uint32_t y0)
+{
+	signed int x1, y1, x2, y2;
+
+	x1 = *x_p-x0;
+	y1 = *y_p-y0;
+
+	x2 = (x1*cos30(30)+y1*sin30(30))+(x0*1000);
+	y2 = (y1*cos30(30)-x1*sin30(30))+(y0*1000);
+
+	if(x2 < 0)
+		*x_p = 83000+x2;
+	else
+		*x_p = x2;
+	
+	if(y2 < 0)
+		*y_p = 47000+y2;
+	else
+		*y_p = y2;
+
+	if((*x_p/1000) < 10)
+		*x_p = round_number(*x_p, 1)/1000;
+	else
+		*x_p = round_number(*x_p, 2)/1000;
+
+	if((*y_p/1000) < 10)
+		*y_p = round_number(*y_p, 1)/1000;
+	else
+		*y_p = round_number(*y_p, 2)/1000;
+}
+
 //----------------------------------------------------------------------------------------------- 
 void escreve2fb(unsigned char imagem[])				// altera o frame buffer, uso para c�pia de figura
 {
@@ -204,6 +280,81 @@ void imprime_LCD()		// desenha em todo o LCD
 	for (i=0 ; i < 504 ; i++)
 		data_LCD(fb[i]);
 }
+
+void imprime_area_LCD(struct pontos_t *p)
+{	
+	uint32_t i, j, x_min, y_min, x_max, y_max;
+
+	// Comparação entre as coordenadas x1, x2 e x3.
+	if(p->x1 < p->x2 && p->x1 < p->x3)
+	{
+		x_min = p->x1;
+
+		if(p->x2 > p->x3)
+			x_max = p->x2;
+		else
+			x_max = p->x3;
+	}
+	else if(p->x2 < p->x1 && p->x2 < p->x3)
+	{
+		x_min = p->x2;
+
+		if(p->x1 > p->x3)
+			x_max = p->x1;
+		else
+			x_max = p->x3;
+	}
+	else
+	{
+		x_min = p->x3;
+
+		if(p->x1 > p->x2)
+			x_max = p->x1;
+		else
+			x_max = p->x2;
+	}
+
+	// Comparação entre as coordenadas y1, y2 e y3.
+	if(p->y1 < p->y2 && p->y1 < p->y3)
+	{
+		y_min = p->y1;
+
+		if(p->y2 > p->y3)
+			y_max = p->y2;
+		else
+			y_max = p->y3;
+	}
+	else if(p->y2 < p->y1 && p->y2 < p->y3)
+	{
+		y_min = p->y2;
+
+		if(p->y1 > p->y3)
+			y_max = p->y1;
+		else
+			y_max = p->y3;
+	}
+	else
+	{
+		y_min = p->y3;
+
+		if(p->y1 > p->y2)
+			y_max = p->y1;
+		else
+			y_max = p->y2;
+	}
+
+	if(x_min>84)	x_min=84;
+	if(x_max>84)	x_max=84;
+	if(y_min>5)	y_min=5;
+	if(y_max>5)	y_max=5;
+
+	for(i = index_XY(x_min, y_min); i <= index_XY(x_min, y_max); i += 84)
+	{	
+		for(j = x_min; j < x_max; j++)
+			data_LCD(fb[i+j]);
+	}
+}
+
 //----------------------------------------------------------------------------------------------- 
 /* This function takes in a character, looks it up in the font table/array and writes it to the screen
  * each character is 8 bits tall and 5 bits wide. We pad one blank column of pixels on each side of 
@@ -294,7 +445,7 @@ void desenha_pixel(uint32_t x,				/* ponto horizontal para o pixel: 0 -> 83 (esq
 // Desenha linha - ALGORITMO DE BRESENHAM - (http://www.etechplanet.com/codesnippets/computer-graphics-draw-a-line-using-bresenham-algorithm.aspx)
 //-----------------------------------------------------------------------------------------------
 void desenha_linha(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2, passagem dos pontos por struct	*/
-						   uint32_t prop)	/* 0 =  paga pixel, 1 = liga pixel				*/
+						   uint32_t prop)	/* 0 =  apaga pixel, 1 = liga pixel				*/
 {
 	uint32_t i, x, y, x1, y1, x2, y2;
 	int32_t dx, dy, dx1, dy1, px, py, xe, ye;
@@ -420,7 +571,7 @@ void desenha_circulo(int32_t x0, int32_t y0,int32_t radius,	// valores int se fa
 *
 *		p1-----------
 *		|			|
-*		|	
+*		|	        |
 *		------------p2
 */
 void desenha_retangulo(struct  pontos_t *p,	uint32_t prop)	/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2, passagem dos pontos por struct	*/
@@ -474,7 +625,8 @@ void desenha_retangulo(struct  pontos_t *p,	uint32_t prop)	/*  p.x1=x1, p.y1=y1,
 void desenha_triangulo(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2, , p.x3=x3, p.y3=y3				*/
 												/*  ponto superior esquerdo e ponto inferior direito					*/
 								uint32_t prop)	/* 0 =  apaga pixel, 1 = liga pixel,									*/
-{	struct pontos_t pt;
+{	
+	struct pontos_t pt;
 	
 	pt.x1 = p->x1; pt.y1 = p->y1;
 	pt.x2 = p->x2; pt.y2 = p->y2;
@@ -639,4 +791,104 @@ void escreve_Nr_Peq(uint32_t x, uint32_t y, int32_t valor, uint32_t quant2Print)
 }
 //----------------------------------------------------------------------------------------------
 
+// Função para desenhar um hexágono
+/**
+ * 				p3-------p4
+ * 			   /           \
+ * 			  /             \
+ * 			 p2             p5
+ * 			  \             /
+ * 			   \           /
+ * 				p1-------p6
+ * */
+void desenha_hexagono(struct pontos_t *coord, uint32_t prop)
+{
+	struct pontos_t pt;
+
+	pt.x1 = coord[0].x1; pt.y1 = coord[0].y1;
+	pt.x2 = coord[0].x2; pt.y2 = coord[0].y2;
+	desenha_linha(&pt, prop);
+
+	pt.x1 = coord[0].x3; pt.y1 = coord[0].y3;
+	desenha_linha(&pt, prop);
+
+	pt.x2 = coord[1].x1; pt.y2 = coord[1].y1;
+	desenha_linha(&pt, prop);
+
+	pt.x1 = coord[1].x2; pt.y1 = coord[1].y2;
+	desenha_linha(&pt, prop);
+
+	pt.x2 = coord[1].x3; pt.y2 = coord[1].y3;
+	desenha_linha(&pt, prop);
+
+	pt.x1 = coord[0].x1; pt.y1 = coord[0].y1;
+	desenha_linha(&pt, prop);
+}
+//----------------------------------------------------------------------------------------------
+
+signed int sin30(signed int angle)
+{
+	return cos30(angle-90);
+}
+
+signed int cos30(signed int angle)
+{
+	uint32_t turns = 0;
+
+	if(angle >= 360 || angle < 0)
+		turns = angle / 360;
+
+	angle = angle - 360*turns;
+
+	if(angle < 0)
+		angle += 360;
+
+	if((angle % 30) > 0)
+		angle -= (angle % 30);
+
+	if(angle <= 90)
+		return cos_table[angle/30]; 
+	else if(angle > 90 && angle <= 180)
+		return -cos_table[(180-angle)/30];
+	else if(angle > 180 && angle <= 270)
+		return -cos_table[(angle-180)/30];
+	else if(angle > 270 && angle < 360)
+		return cos_table[(360-angle)/30];
+	else
+		return 0;
+}
+//----------------------------------------------------------------------------------------------
+
+uint32_t round_number(uint32_t number, uint32_t digits)
+{
+	uint32_t i = 0, n = 1;
+
+	while(i <= 10)
+	{
+		if(number > (n-1))
+			n *= 10;
+		else
+			break;
+		
+		i++;
+	}
+
+	n = i-digits;
+
+	if(n == 0)
+		return number;
+	else
+	{
+		for(i = 1; n > 0; n--)
+			i*=10;
+		
+		n = number/i;
+		n = number - (n*i);
+
+		if(n >= (i>>1))
+			return number+i-n;
+		else
+			return number-n;
+	}
+}
 

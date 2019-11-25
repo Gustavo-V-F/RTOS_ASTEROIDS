@@ -50,18 +50,21 @@ struct figura_t
 	unsigned char pixels[];
 };
 
-
 void cmd_LCD(uint32_t data);
 void data_LCD(uint32_t data);
 void inic_LCD(); 
 void goto_XY(uint32_t x, uint32_t y);
+uint32_t index_XY(uint32_t x, uint32_t y);
+void rotate_clock_wise(uint32_t *x, uint32_t *y, uint32_t x0, uint32_t y0);
+void rotate_counter_clock_wise(uint32_t *x, uint32_t *y, uint32_t x0, uint32_t y0);
 void escreve2fb(unsigned char imagem[])	;
 void imprime_LCD();
+void imprime_area_LCD(struct pontos_t *p);
 void caractere_LCD(char character);
 void string_LCD(char *msg);
 void limpa_LCD(); 
 
-// Fun��es do Borges
+// Funções do Borges
 void string_LCD_Nr(char * msg, uint32_t valor, uint32_t quant2Print);
 
 void desenha_pixel(uint32_t x, uint32_t y, uint32_t propriedade);
@@ -72,6 +75,16 @@ void desenha_triangulo(struct  pontos_t *p, uint32_t prop);
 void desenha_fig(struct  pontos_t *p, const struct figura_t *figura);
 
 void escreve_Nr_Peq(uint32_t x, uint32_t y, int32_t valor, uint32_t quant2Print);
+
+// New Functions
+void desenha_hexagono(struct pontos_t *coord, uint32_t prop);
+
+// Sin and cos functions
+signed int sin30(signed int angle);
+signed int cos30(signed int angle);
+
+// Math functions
+uint32_t round_number(uint32_t number, uint32_t digits);
 
 //-------------------------------------------------------------------------------------
 #endif /* NOKIA5110_H_ */
