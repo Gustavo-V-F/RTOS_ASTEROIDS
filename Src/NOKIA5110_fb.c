@@ -202,7 +202,7 @@ uint32_t index_XY(uint32_t x, uint32_t y)
 	return x + (84*y);
 }
 
-void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, uint32_t *x0, uint32_t *y0)
+void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_t *y0)
 {
 	signed int x1, y1, x2, y2;
 
@@ -261,7 +261,7 @@ void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, uint32_t *x0, uint32_t *y0)
 		*y_p = round_number(*y_p, 2)/1000;
 }
 
-void rotate_counter_clock_wise(uint32_t *x_p, uint32_t *y_p, uint32_t *x0, uint32_t *y0)
+void rotate_counter_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_t *y0)
 {
 	signed int x1, y1, x2, y2;
 
@@ -503,7 +503,7 @@ void desenha_pixel(uint32_t x,				/* ponto horizontal para o pixel: 0 -> 83 (esq
 void desenha_linha(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2, passagem dos pontos por struct	*/
 						   uint32_t prop)	/* 0 =  apaga pixel, 1 = liga pixel				*/
 {
-	uint32_t i, x, y, x1, y1, x2, y2;
+	uint32_t i, x, y, x1, y1, x2, y2, xp, yp;
 	int32_t dx, dy, dx1, dy1, px, py, xe, ye;
 
 	x1 = p->x1;
@@ -517,7 +517,7 @@ void desenha_linha(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2,
 	dy1 = abs(dy);
 	px = 2*dy1 - dx1;
 	py = 2*dx1 - dy1;
-		
+
 	if(dy1 <= dx1)
 	{	if(dx >= 0)
 		{	x = x1;
@@ -529,7 +529,17 @@ void desenha_linha(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2,
 			y = y2;
 			xe = x1;
 		}
-		desenha_pixel(x,y,prop);
+
+		xp = x;
+		yp = y;
+
+		if(x > 83)
+			xp = x-83;
+		if(y > 47)
+			yp = y-47;
+
+		desenha_pixel(xp,yp,prop);
+
 		for(i=0; x<xe; i++)
 		{
 			x++;
@@ -543,7 +553,16 @@ void desenha_linha(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2,
 					y--;
 				px = px + 2*(dy1-dx1);
 			}
-			desenha_pixel(x,y,prop);
+
+			xp = x;
+			yp = y;
+
+			if(x > 83)
+				xp = x-83;
+			if(y > 47)
+				yp = y-47;
+
+			desenha_pixel(xp,yp,prop);		
 		}
 	}
 	else
@@ -558,7 +577,17 @@ void desenha_linha(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2,
 			y=y2;
 			ye=y1;
 		}
-		desenha_pixel(x,y,prop);
+		
+		xp = x;
+		yp = y;
+
+		if(x > 83)
+			xp = x-83;
+		if(y > 47)
+			yp = y-47;
+		
+		desenha_pixel(xp,yp,prop);
+
 		for(i=0;y<ye;i++)
 		{
 			y++;
@@ -572,7 +601,16 @@ void desenha_linha(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2,
 					x--;
 				py = py + 2*(dx1-dy1);
 			}
-			desenha_pixel(x,y,prop);
+
+			xp = x;
+			yp = y;
+
+			if(x > 83)
+				xp = x-83;
+			if(y > 47)
+				yp = y-47;
+
+			desenha_pixel(xp,yp,prop);
 		}
 	}
 }
@@ -678,20 +716,98 @@ void desenha_retangulo(struct  pontos_t *p,	uint32_t prop)	/*  p.x1=x1, p.y1=y1,
 *		  /		 \
 *		p1--------p3
 */
-void desenha_triangulo(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2, , p.x3=x3, p.y3=y3				*/
-												/*  ponto superior esquerdo e ponto inferior direito					*/
-								uint32_t prop)	/* 0 =  apaga pixel, 1 = liga pixel,									*/
+void desenha_triangulo(struct  	pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2, , p.x3=x3, p.y3=y3				*/
+													/*  ponto superior esquerdo e ponto inferior direito					*/
+					   struct	sig_pontos_t *ref,	/*	pontos de referência de cada ponto de *p																	*/
+								uint32_t prop)		/* 0 =  apaga pixel, 1 = liga pixel,									*/
 {	
 	struct pontos_t pt;
 	
 	pt.x1 = p->x1; pt.y1 = p->y1;
 	pt.x2 = p->x2; pt.y2 = p->y2;
+
+	if(ref->x1 != ref->x2)
+	{
+		if(ref->x1 < 0)
+			pt.x1 = p->x1 + 83;
+		else if(ref->x1 > 83)
+			pt.x2 = p->x2 + 83; 
+		else if(ref->x2 < 0)
+			pt.x2 = p->x2 + 83;
+		else if(ref->x2 > 83)
+			pt.x1 = p->x1 + 83;
+	}
+
+	if(ref->y1 != ref->y2)
+	{
+		if(ref->y1 < 0)
+			pt.y1 = p->y1 + 47;
+		else if(ref->y1 > 47)
+			pt.y2 = p->y2 + 47; 
+		else if(ref->y2 < 0)
+			pt.y2 = p->y2 + 47;
+		else if(ref->y2 > 47)
+			pt.y1 = p->y1 + 47;
+	}
+
 	desenha_linha(&pt,prop);
-	
-	pt.x2 = p->x3; pt.y2 = p->y3;
-	desenha_linha(&pt,prop);
-	
+
 	pt.x1 = p->x2; pt.y1 = p->y2;
+	pt.x2 = p->x3; pt.y2 = p->y3;
+
+	if(ref->x2 != ref->x3)
+	{
+		if(ref->x2 < 0)
+			pt.x1 = p->x2 + 83;
+		else if(ref->x2 > 83)
+			pt.x2 = p->x3 + 83; 
+		else if(ref->x3 < 0)
+			pt.x2 = p->x3 + 83;
+		else if(ref->x3 > 83)
+			pt.x1 = p->x2 + 83;
+	}
+
+	if(ref->y2 != ref->y3)
+	{
+		if(ref->y2 < 0)
+			pt.y1 = p->y2 + 47;
+		else if(ref->y2 > 47)
+			pt.y2 = p->y3 + 47; 
+		else if(ref->y3 < 0)
+			pt.y2 = p->y3 + 47;
+		else if(ref->y3 > 47)
+			pt.y1 = p->y2 + 47;
+	}
+
+	desenha_linha(&pt,prop);
+	
+	pt.x1 = p->x3; pt.y1 = p->y3;
+	pt.x2 = p->x1; pt.y2 = p->y1;
+
+	if(ref->x3 != ref->x1)
+	{
+		if(ref->x3 < 0)
+			pt.x1 = p->x3 + 83;
+		else if(ref->x3 > 83)
+			pt.x2 = p->x1 + 83; 
+		else if(ref->x1 < 0)
+			pt.x2 = p->x1 + 83;
+		else if(ref->x1 > 83)
+			pt.x1 = p->x3 + 83;
+	}
+
+	if(ref->y3 != ref->y1)
+	{
+		if(ref->y3 < 0)
+			pt.y1 = p->y3 + 47;
+		else if(ref->y3 > 47)
+			pt.y2 = p->y1 + 47; 
+		else if(ref->y1 < 0)
+			pt.y2 = p->y1 + 47;
+		else if(ref->y1 > 47)
+			pt.y1 = p->y3 + 47;
+	}
+
 	desenha_linha(&pt,prop);	
 	
 }
@@ -857,27 +973,182 @@ void escreve_Nr_Peq(uint32_t x, uint32_t y, int32_t valor, uint32_t quant2Print)
  * 			   \           /
  * 				p1-------p6
  * */
-void desenha_hexagono(struct pontos_t *coord, uint32_t prop)
+void desenha_hexagono(struct pontos_t *coord, struct sig_pontos_t *ref, uint32_t prop)
 {
 	struct pontos_t pt;
-
+	
 	pt.x1 = coord[0].x1; pt.y1 = coord[0].y1;
 	pt.x2 = coord[0].x2; pt.y2 = coord[0].y2;
+
+	if(ref[0].x1 != ref[0].x2)
+	{
+		if(ref[0].x1 < 0)
+			pt.x1 = coord[0].x1 + 83;
+		else if(ref[0].x1 > 83)
+			pt.x2 = coord[0].x2 + 83; 
+		else if(ref[0].x2 < 0)
+			pt.x2 = coord[0].x2 + 83;
+		else if(ref[0].x2 > 83)
+			pt.x1 = coord[0].x1 + 83;
+	}
+
+	if(ref[0].y1 != ref[0].y2)
+	{
+		if(ref[0].y1 < 0)
+			pt.y1 = coord[0].y1 + 47;
+		else if(ref[0].y1 > 47)
+			pt.y2 = coord[0].y2 + 47; 
+		else if(ref[0].y2 < 0)
+			pt.y2 = coord[0].y2 + 47;
+		else if(ref[0].y2 > 47)
+			pt.y1 = coord[0].y1 + 47;
+	}
+
+	desenha_linha(&pt, prop);
+
+	pt.x1 = coord[0].x2; pt.y1 = coord[0].y2;
+	pt.x2 = coord[0].x3; pt.y2 = coord[0].y3;
+
+	if(ref[0].x2 != ref[0].x3)
+	{
+		if(ref[0].x2 < 0)
+			pt.x1 = coord[0].x2 + 83;
+		else if(ref[0].x2 > 83)
+			pt.x2 = coord[0].x3 + 83; 
+		else if(ref[0].x3 < 0)
+			pt.x2 = coord[0].x3 + 83;
+		else if(ref[0].x3 > 83)
+			pt.x1 = coord[0].x2 + 83;
+	}
+
+	if(ref[0].y2 != ref[0].y3)
+	{
+		if(ref[0].y2 < 0)
+			pt.y1 = coord[0].y2 + 47;
+		else if(ref[0].y2 > 47)
+			pt.y2 = coord[0].y3 + 47; 
+		else if(ref[0].y3 < 0)
+			pt.y2 = coord[0].y3 + 47;
+		else if(ref[0].y3 > 47)
+			pt.y1 = coord[0].y2 + 47;
+	}
+
 	desenha_linha(&pt, prop);
 
 	pt.x1 = coord[0].x3; pt.y1 = coord[0].y3;
+	pt.x2 = coord[1].x1; pt.y2 = coord[1].y1;
+
+	if(ref[0].x3 != ref[1].x1)
+	{
+		if(ref[0].x3 < 0)
+			pt.x1 = coord[0].x3 + 83;
+		else if(ref[0].x3 > 83)
+			pt.x2 = coord[1].x1 + 83; 
+		else if(ref[1].x1 < 0)
+			pt.x2 = coord[1].x1 + 83;
+		else if(ref[1].x1 > 83)
+			pt.x1 = coord[0].x3 + 83;
+	}
+
+	if(ref[0].y3 != ref[1].y1)
+	{
+		if(ref[0].y3 < 0)
+			pt.y1 = coord[0].y3 + 47;
+		else if(ref[0].y3 > 47)
+			pt.y2 = coord[1].y1 + 47; 
+		else if(ref[1].y1 < 0)
+			pt.y2 = coord[1].y1 + 47;
+		else if(ref[1].y1 > 47)
+			pt.y1 = coord[0].y3 + 47;
+	}
+
 	desenha_linha(&pt, prop);
 
-	pt.x2 = coord[1].x1; pt.y2 = coord[1].y1;
+	pt.x1 = coord[1].x1; pt.y1 = coord[1].y1;
+	pt.x2 = coord[1].x2; pt.y2 = coord[1].y2;
+
+	if(ref[1].x1 != ref[1].x2)
+	{
+		if(ref[1].x1 < 0)
+			pt.x1 = coord[1].x1 + 83;
+		else if(ref[1].x1 > 83)
+			pt.x2 = coord[1].x2 + 83; 
+		else if(ref[1].x2 < 0)
+			pt.x2 = coord[1].x2 + 83;
+		else if(ref[1].x2 > 83)
+			pt.x1 = coord[1].x1 + 83;
+	}
+
+	if(ref[1].y1 != ref[1].y2)
+	{
+		if(ref[1].y1 < 0)
+			pt.y1 = coord[1].y1 + 47;
+		else if(ref[1].y1 > 47)
+			pt.y2 = coord[1].y2 + 47; 
+		else if(ref[1].y2 < 0)
+			pt.y2 = coord[1].y2 + 47;
+		else if(ref[1].y2 > 47)
+			pt.y1 = coord[1].y1 + 47;
+	}
+
 	desenha_linha(&pt, prop);
 
 	pt.x1 = coord[1].x2; pt.y1 = coord[1].y2;
-	desenha_linha(&pt, prop);
-
 	pt.x2 = coord[1].x3; pt.y2 = coord[1].y3;
+
+	if(ref[1].x2 != ref[1].x3)
+	{
+		if(ref[1].x2 < 0)
+			pt.x1 = coord[1].x2 + 83;
+		else if(ref[1].x2 > 83)
+			pt.x2 = coord[1].x3 + 83; 
+		else if(ref[1].x3 < 0)
+			pt.x2 = coord[1].x3 + 83;
+		else if(ref[1].x3 > 83)
+			pt.x1 = coord[1].x2 + 83;
+	}
+
+	if(ref[1].y2 != ref[1].y3)
+	{
+		if(ref[1].y2 < 0)
+			pt.y1 = coord[1].y2 + 47;
+		else if(ref[1].y2 > 47)
+			pt.y2 = coord[1].y3 + 47; 
+		else if(ref[1].y3 < 0)
+			pt.y2 = coord[1].y3 + 47;
+		else if(ref[1].y3 > 47)
+			pt.y1 = coord[1].y2 + 47;
+	}
+
 	desenha_linha(&pt, prop);
 
-	pt.x1 = coord[0].x1; pt.y1 = coord[0].y1;
+	pt.x1 = coord[1].x3; pt.y1 = coord[1].y3;
+	pt.x2 = coord[0].x1; pt.y2 = coord[0].y1;
+
+	if(ref[1].x3 != ref[0].x1)
+	{
+		if(ref[1].x3 < 0)
+			pt.x1 = coord[1].x3 + 83;
+		else if(ref[1].x3 > 83)
+			pt.x2 = coord[0].x1 + 83; 
+		else if(ref[0].x1 < 0)
+			pt.x2 = coord[0].x1 + 83;
+		else if(ref[0].x1 > 83)
+			pt.x1 = coord[1].x3 + 83;
+	}
+
+	if(ref[1].y3 != ref[0].y1)
+	{
+		if(ref[1].y3 < 0)
+			pt.y1 = coord[1].y3 + 47;
+		else if(ref[1].y3 > 47)
+			pt.y2 = coord[0].y1 + 47; 
+		else if(ref[0].y1 < 0)
+			pt.y2 = coord[0].y1 + 47;
+		else if(ref[0].y1 > 47)
+			pt.y1 = coord[1].y3 + 47;
+	}
+
 	desenha_linha(&pt, prop);
 }
 //----------------------------------------------------------------------------------------------

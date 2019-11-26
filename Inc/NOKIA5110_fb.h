@@ -43,6 +43,15 @@ struct pontos_t{
 	uint32_t y3;
 };
 
+struct sig_pontos_t{
+	int32_t x1;
+	int32_t y1;
+	int32_t x2;
+	int32_t y2;
+	int32_t x3;
+	int32_t y3;
+};
+
 struct figura_t
 {
 	unsigned char largura;
@@ -55,8 +64,8 @@ void data_LCD(uint32_t data);
 void inic_LCD(); 
 void goto_XY(uint32_t x, uint32_t y);
 uint32_t index_XY(uint32_t x, uint32_t y);
-void rotate_clock_wise(uint32_t *x, uint32_t *y, uint32_t *x0, uint32_t *y0);
-void rotate_counter_clock_wise(uint32_t *x, uint32_t *y, uint32_t *x0, uint32_t *y0);
+void rotate_clock_wise(uint32_t *x, uint32_t *y, int32_t *x0, int32_t *y0);
+void rotate_counter_clock_wise(uint32_t *x, uint32_t *y, int32_t *x0, int32_t *y0);
 void escreve2fb(unsigned char imagem[])	;
 void imprime_LCD();
 void imprime_area_LCD(struct pontos_t *p);
@@ -71,13 +80,13 @@ void desenha_pixel(uint32_t x, uint32_t y, uint32_t propriedade);
 void desenha_linha(struct pontos_t *coord, uint32_t prop);
 void desenha_circulo(int32_t x0, int32_t y0, int32_t radius, uint32_t prop);
 void desenha_retangulo(struct  pontos_t *t, uint32_t prop);
-void desenha_triangulo(struct  pontos_t *p, uint32_t prop);
+void desenha_triangulo(struct  pontos_t *p, struct sig_pontos_t *ref, uint32_t prop);
 void desenha_fig(struct  pontos_t *p, const struct figura_t *figura);
 
 void escreve_Nr_Peq(uint32_t x, uint32_t y, int32_t valor, uint32_t quant2Print);
 
 // New Functions
-void desenha_hexagono(struct pontos_t *coord, uint32_t prop);
+void desenha_hexagono(struct pontos_t *coord, struct sig_pontos_t *ref, uint32_t prop);
 
 // Sin and cos functions
 signed int sin30(signed int angle);
