@@ -32,6 +32,9 @@
 
 #define INVERTE_PIXELS()		cmd_LCD(0x0D)
 #define NORMALIZA_PIXELS()		cmd_LCD(0x0C)
+#define MAX_WIDTH 83
+#define MAX_HEIGHT 47
+#define ROUNDING_DIGITS 1000
 //-------------------------------------------------------------------------------------
 
 struct pontos_t{
@@ -64,6 +67,7 @@ void data_LCD(uint32_t data);
 void inic_LCD(); 
 void goto_XY(uint32_t x, uint32_t y);
 uint32_t index_XY(uint32_t x, uint32_t y);
+void auto_map_XY(struct pontos_t *pt, struct sig_pontos_t *ref);
 void rotate_clock_wise(uint32_t *x, uint32_t *y, int32_t *x0, int32_t *y0);
 void rotate_counter_clock_wise(uint32_t *x, uint32_t *y, int32_t *x0, int32_t *y0);
 void escreve2fb(unsigned char imagem[])	;
@@ -87,6 +91,10 @@ void escreve_Nr_Peq(uint32_t x, uint32_t y, int32_t valor, uint32_t quant2Print)
 
 // New Functions
 void desenha_hexagono(struct pontos_t *coord, struct sig_pontos_t *ref, uint32_t prop);
+void girar_triangulo_horario(struct pontos_t *p, struct sig_pontos_t *ref);
+void girar_triangulo_antihorario(struct pontos_t *p, struct sig_pontos_t *ref);
+void girar_hexagono_horario(struct pontos_t *coord, struct sig_pontos_t *ref);
+void girar_hexagono_antihorario(struct pontos_t *coord, struct sig_pontos_t *ref);
 
 // Sin and cos functions
 signed int sin30(signed int angle);

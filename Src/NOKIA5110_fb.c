@@ -186,10 +186,10 @@ void inic_LCD()
 	cmd_LCD(0x0D);			//Set display control, normal mode. 0x0D for inverse
 }
 //----------------------------------------------------------------------------------------------- 
-void goto_XY(uint32_t x, uint32_t y)  // 0<=x<=83  0<=y<=5
+void goto_XY(uint32_t x, uint32_t y)  // 0<=x<=MAX_WIDTH  0<=y<=5
 {
 	if(y>5)	y=5;
-	if(x>84)	x=83;
+	if(x>84)	x=MAX_WIDTH;
   
 	indice_fb =  x + (84*y);		// indice para ser empregado no fb
 }
@@ -197,10 +197,40 @@ void goto_XY(uint32_t x, uint32_t y)  // 0<=x<=83  0<=y<=5
 uint32_t index_XY(uint32_t x, uint32_t y)
 {
 	if(y>5)	y=5;
-	if(x>84)	x=83;
+	if(x>84)	x=MAX_WIDTH;
   
 	return x + (84*y);
 }
+
+void auto_map_XY(struct pontos_t *pt, struct sig_pontos_t *ref)
+{
+	if(ref->x1 != ref->x2)
+	{
+		if(ref->x1 < 0)
+			pt->x1 = pt->x1 + MAX_WIDTH;
+		else if(ref->x1 > MAX_WIDTH)
+			pt->x2 = pt->x2 + MAX_WIDTH+1; 
+		
+		if(ref->x2 < 0)
+			pt->x2 = pt->x2 + MAX_WIDTH;
+		else if(ref->x2 > MAX_WIDTH)
+			pt->x1 = pt->x1 + MAX_WIDTH+1;
+	}
+
+	if(ref->y1 != ref->y2)
+	{
+		if(ref->y1 < 0)
+			pt->y1 = pt->y1 + MAX_HEIGHT;
+		else if(ref->y1 > MAX_HEIGHT)
+			pt->y2 = pt->y2 + MAX_HEIGHT+1; 
+		
+		if(ref->y2 < 0)
+			pt->y2 = pt->y2 + MAX_HEIGHT;
+		else if(ref->y2 > MAX_HEIGHT)
+			pt->y1 = pt->y1 + MAX_HEIGHT+1;
+	}
+}
+
 
 void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_t *y0)
 {
@@ -209,56 +239,60 @@ void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_t *y0)
 	x1 = *x_p-*x0;
 	y1 = *y_p-*y0;
 
-	x2 = (x1*cos30(30)-y1*sin30(30))+(*x0*1000);
-	y2 = (x1*sin30(30)+y1*cos30(30))+(*y0*1000);
+	x2 = (x1*cos30(30)-y1*sin30(30))+(*x0*ROUNDING_DIGITS);
+	y2 = (x1*sin30(30)+y1*cos30(30))+(*y0*ROUNDING_DIGITS);
+
+	*x_p = x2;
 
 	if(x2 < 0)
 	{
-		*x_p = 83000+x2;
-		*x0 = 83+*x0;
-	}else if(x2 > 83000)
+		*x_p = MAX_WIDTH*ROUNDING_DIGITS+x2+ROUNDING_DIGITS;
+		*x0 = MAX_WIDTH+*x0+1;
+	}else if(x2 >= MAX_WIDTH*ROUNDING_DIGITS+(ROUNDING_DIGITS>>1))
 	{
-		*x_p = x2-83000;
-		*x0 = *x0-83;
-	}else
-		*x_p = x2;
+		x2 = round_number(x2, 2);
+		*x_p = x2-MAX_WIDTH*ROUNDING_DIGITS-ROUNDING_DIGITS;
+		*x0 = *x0-MAX_WIDTH-1;
+	}	
+
+	*y_p = y2;
 
 	if(y2 < 0)
 	{
-		*y_p = 47000+y2;
-		*y0 = 47+*y0;
-	}else if(y2 > 47000)
+		*y_p = MAX_HEIGHT*ROUNDING_DIGITS+y2+ROUNDING_DIGITS;
+		*y0 = MAX_HEIGHT+*y0+1;
+	}else if(y2 > MAX_HEIGHT*ROUNDING_DIGITS+(ROUNDING_DIGITS>>1))
 	{
-		*y_p = y2-47000;
-		*y0 = *y0-47;
-	}else
-		*y_p = y2;
+		y2 = round_number(y2, 2);
+		*y_p = y2-MAX_HEIGHT*ROUNDING_DIGITS-ROUNDING_DIGITS;
+		*y0 = *y0-MAX_HEIGHT-1;
+	}
 
-	if(*x_p < 10000)
+	if(*x_p < 10*ROUNDING_DIGITS)
 	{
-		if(*x_p < 1000)
+		if(*x_p < ROUNDING_DIGITS)
 		{
-			if(*x_p >= (1000 >> 2))
+			if(*x_p >= (ROUNDING_DIGITS >> 2))
 				*x_p = 1;
 			else
 				*x_p = 0;
 		}else
-			*x_p = round_number(*x_p, 1)/1000;
+			*x_p = round_number(*x_p, 1)/ROUNDING_DIGITS;
 	}else
-		*x_p = round_number(*x_p, 2)/1000;
+		*x_p = round_number(*x_p, 2)/ROUNDING_DIGITS;
 
-	if(*y_p < 10000)
+	if(*y_p < 10*ROUNDING_DIGITS)
 	{
-		if(*y_p < 1000)
+		if(*y_p < ROUNDING_DIGITS)
 		{
-			if(*y_p >= (1000 >> 2))
+			if(*y_p >= (ROUNDING_DIGITS >> 2))
 				*y_p = 1;
 			else
 				*y_p = 0;
 		}else
-			*y_p = round_number(*y_p, 1)/1000;
+			*y_p = round_number(*y_p, 1)/ROUNDING_DIGITS;
 	}else
-		*y_p = round_number(*y_p, 2)/1000;
+		*y_p = round_number(*y_p, 2)/ROUNDING_DIGITS;
 }
 
 void rotate_counter_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_t *y0)
@@ -268,56 +302,60 @@ void rotate_counter_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_
 	x1 = *x_p-*x0;
 	y1 = *y_p-*y0;
 
-	x2 = (x1*cos30(30)+y1*sin30(30))+(*x0*1000);
-	y2 = (y1*cos30(30)-x1*sin30(30))+(*y0*1000);
+	x2 = (x1*cos30(30)+y1*sin30(30))+(*x0*ROUNDING_DIGITS);
+	y2 = (y1*cos30(30)-x1*sin30(30))+(*y0*ROUNDING_DIGITS);
+
+	*x_p = x2;
 
 	if(x2 < 0)
 	{
-		*x_p = 83000+x2;
-		*x0 = 83+*x0;
-	}else if(x2 > 83000)
+		*x_p = MAX_WIDTH*ROUNDING_DIGITS+x2+ROUNDING_DIGITS;
+		*x0 = MAX_WIDTH+*x0+1;
+	}else if(x2 >= MAX_WIDTH*ROUNDING_DIGITS+(ROUNDING_DIGITS>>1))
 	{
-		*x_p = x2-83000;
-		*x0 = *x0-83;
-	}else
-		*x_p = x2;
+		x2 = round_number(x2, 2);
+		*x_p = x2-MAX_WIDTH*ROUNDING_DIGITS-ROUNDING_DIGITS;
+		*x0 = *x0-MAX_WIDTH-1;
+	}	
+
+	*y_p = y2;
 
 	if(y2 < 0)
 	{
-		*y_p = 47000+y2;
-		*y0 = 47+*y0;
-	}else if(y2 > 47000)
+		*y_p = MAX_HEIGHT*ROUNDING_DIGITS+y2+ROUNDING_DIGITS;
+		*y0 = MAX_HEIGHT+*y0+1;
+	}else if(y2 > MAX_HEIGHT*ROUNDING_DIGITS+(ROUNDING_DIGITS>>1))
 	{
-		*y_p = y2-47000;
-		*y0 = *y0-47;
-	}else
-		*y_p = y2;
+		y2 = round_number(y2, 2);
+		*y_p = y2-MAX_HEIGHT*ROUNDING_DIGITS-ROUNDING_DIGITS;
+		*y0 = *y0-MAX_HEIGHT-1;
+	}
 
-	if(*x_p < 10000)
+	if(*x_p < 10*ROUNDING_DIGITS)
 	{
-		if(*x_p < 1000)
+		if(*x_p < ROUNDING_DIGITS)
 		{
-			if(*x_p >= (1000 >> 2))
+			if(*x_p >= (ROUNDING_DIGITS >> 2))
 				*x_p = 1;
 			else
 				*x_p = 0;
 		}else
-			*x_p = round_number(*x_p, 1)/1000;
+			*x_p = round_number(*x_p, 1)/ROUNDING_DIGITS;
 	}else
-		*x_p = round_number(*x_p, 2)/1000;
+		*x_p = round_number(*x_p, 2)/ROUNDING_DIGITS;
 
-	if(*y_p < 10000)
+	if(*y_p < 10*ROUNDING_DIGITS)
 	{
-		if(*y_p < 1000)
+		if(*y_p < ROUNDING_DIGITS)
 		{
-			if(*y_p >= (1000 >> 2))
+			if(*y_p >= (ROUNDING_DIGITS >> 2))
 				*y_p = 1;
 			else
 				*y_p = 0;
 		}else
-			*y_p = round_number(*y_p, 1)/1000;
+			*y_p = round_number(*y_p, 1)/ROUNDING_DIGITS;
 	}else
-		*y_p = round_number(*y_p, 2)/1000;
+		*y_p = round_number(*y_p, 2)/ROUNDING_DIGITS;
 }
 
 //----------------------------------------------------------------------------------------------- 
@@ -480,14 +518,14 @@ void limpa_LCD()
 //----------------------------------------------------------------------------------------------- 
 // Desenha pixel 
 //----------------------------------------------------------------------------------------------- 
-void desenha_pixel(uint32_t x,				/* ponto horizontal para o pixel: 0 -> 83 (esq -> dir)	*/
-				   uint32_t y,				/* ponto vertical para o pixel: 0 -> 47 (cima -> baixo)	*/
+void desenha_pixel(uint32_t x,				/* ponto horizontal para o pixel: 0 -> MAX_WIDTH (esq -> dir)	*/
+				   uint32_t y,				/* ponto vertical para o pixel: 0 -> MAX_HEIGHT (cima -> baixo)	*/
 				   uint32_t propr)			/* 0 =  apaga pixel, 1 = liga pixel				*/
 {
 	uint32_t i;
 	
-	if(x>83)	x=83;
-	if(y>47)	y=47;
+	if(x>MAX_WIDTH)	x=MAX_WIDTH;
+	if(y>MAX_HEIGHT)	y=MAX_HEIGHT;
 	
 	i = x + (84*(y/8));		/* determina��o do indice do byte a ser alterado [0 - 503]	*/
 	
@@ -533,10 +571,10 @@ void desenha_linha(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2,
 		xp = x;
 		yp = y;
 
-		if(x > 83)
-			xp = x-83;
-		if(y > 47)
-			yp = y-47;
+		if(x > MAX_WIDTH)
+			xp = x-MAX_WIDTH-1;
+		if(y > MAX_HEIGHT)
+			yp = y-MAX_HEIGHT-1;
 
 		desenha_pixel(xp,yp,prop);
 
@@ -557,10 +595,10 @@ void desenha_linha(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2,
 			xp = x;
 			yp = y;
 
-			if(x > 83)
-				xp = x-83;
-			if(y > 47)
-				yp = y-47;
+			if(x > MAX_WIDTH)
+				xp = x-MAX_WIDTH-1;
+			if(y > MAX_HEIGHT)
+				yp = y-MAX_HEIGHT-1;
 
 			desenha_pixel(xp,yp,prop);		
 		}
@@ -581,10 +619,10 @@ void desenha_linha(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2,
 		xp = x;
 		yp = y;
 
-		if(x > 83)
-			xp = x-83;
-		if(y > 47)
-			yp = y-47;
+		if(x > MAX_WIDTH)
+			xp = x-MAX_WIDTH-1;
+		if(y > MAX_HEIGHT)
+			yp = y-MAX_HEIGHT-1;
 		
 		desenha_pixel(xp,yp,prop);
 
@@ -605,10 +643,10 @@ void desenha_linha(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2,
 			xp = x;
 			yp = y;
 
-			if(x > 83)
-				xp = x-83;
-			if(y > 47)
-				yp = y-47;
+			if(x > MAX_WIDTH)
+				xp = x-MAX_WIDTH-1;
+			if(y > MAX_HEIGHT)
+				yp = y-MAX_HEIGHT-1;
 
 			desenha_pixel(xp,yp,prop);
 		}
@@ -622,8 +660,8 @@ void desenha_circulo(int32_t x0, int32_t y0,int32_t radius,	// valores int se fa
 {
 	  int f, ddF_x, ddF_y, x, y;
 	  
-	  if(x0>83)	x0=83;
-	  if(y0>47) y0=47;
+	  if(x0>MAX_WIDTH)	x0=MAX_WIDTH;
+	  if(y0>MAX_HEIGHT) y0=MAX_HEIGHT;
 	  
 	  f = 1 - radius;
 	  ddF_x = 0;
@@ -722,92 +760,30 @@ void desenha_triangulo(struct  	pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y
 								uint32_t prop)		/* 0 =  apaga pixel, 1 = liga pixel,									*/
 {	
 	struct pontos_t pt;
+	struct sig_pontos_t sig_pt;
 	
 	pt.x1 = p->x1; pt.y1 = p->y1;
 	pt.x2 = p->x2; pt.y2 = p->y2;
+	sig_pt.x1 = ref->x1; sig_pt.y1 = ref->y1;
+	sig_pt.x2 = ref->x2; sig_pt.y2 = ref->y2;
 
-	if(ref->x1 != ref->x2)
-	{
-		if(ref->x1 < 0)
-			pt.x1 = p->x1 + 83;
-		else if(ref->x1 > 83)
-			pt.x2 = p->x2 + 83; 
-		else if(ref->x2 < 0)
-			pt.x2 = p->x2 + 83;
-		else if(ref->x2 > 83)
-			pt.x1 = p->x1 + 83;
-	}
-
-	if(ref->y1 != ref->y2)
-	{
-		if(ref->y1 < 0)
-			pt.y1 = p->y1 + 47;
-		else if(ref->y1 > 47)
-			pt.y2 = p->y2 + 47; 
-		else if(ref->y2 < 0)
-			pt.y2 = p->y2 + 47;
-		else if(ref->y2 > 47)
-			pt.y1 = p->y1 + 47;
-	}
-
+	auto_map_XY(&pt, &sig_pt);
 	desenha_linha(&pt,prop);
 
 	pt.x1 = p->x2; pt.y1 = p->y2;
 	pt.x2 = p->x3; pt.y2 = p->y3;
+	sig_pt.x1 = ref->x2; sig_pt.y1 = ref->y2;
+	sig_pt.x2 = ref->x3; sig_pt.y2 = ref->y3;
 
-	if(ref->x2 != ref->x3)
-	{
-		if(ref->x2 < 0)
-			pt.x1 = p->x2 + 83;
-		else if(ref->x2 > 83)
-			pt.x2 = p->x3 + 83; 
-		else if(ref->x3 < 0)
-			pt.x2 = p->x3 + 83;
-		else if(ref->x3 > 83)
-			pt.x1 = p->x2 + 83;
-	}
-
-	if(ref->y2 != ref->y3)
-	{
-		if(ref->y2 < 0)
-			pt.y1 = p->y2 + 47;
-		else if(ref->y2 > 47)
-			pt.y2 = p->y3 + 47; 
-		else if(ref->y3 < 0)
-			pt.y2 = p->y3 + 47;
-		else if(ref->y3 > 47)
-			pt.y1 = p->y2 + 47;
-	}
-
+	auto_map_XY(&pt, &sig_pt);
 	desenha_linha(&pt,prop);
 	
 	pt.x1 = p->x3; pt.y1 = p->y3;
 	pt.x2 = p->x1; pt.y2 = p->y1;
+	sig_pt.x1 = ref->x3; sig_pt.y1 = ref->y3;
+	sig_pt.x2 = ref->x1; sig_pt.y2 = ref->y1;
 
-	if(ref->x3 != ref->x1)
-	{
-		if(ref->x3 < 0)
-			pt.x1 = p->x3 + 83;
-		else if(ref->x3 > 83)
-			pt.x2 = p->x1 + 83; 
-		else if(ref->x1 < 0)
-			pt.x2 = p->x1 + 83;
-		else if(ref->x1 > 83)
-			pt.x1 = p->x3 + 83;
-	}
-
-	if(ref->y3 != ref->y1)
-	{
-		if(ref->y3 < 0)
-			pt.y1 = p->y3 + 47;
-		else if(ref->y3 > 47)
-			pt.y2 = p->y1 + 47; 
-		else if(ref->y1 < 0)
-			pt.y2 = p->y1 + 47;
-		else if(ref->y1 > 47)
-			pt.y1 = p->y3 + 47;
-	}
-
+	auto_map_XY(&pt, &sig_pt);
 	desenha_linha(&pt,prop);	
 	
 }
@@ -855,8 +831,8 @@ void desenha_fig(struct  pontos_t *p,		// [p.x1 p.y1] para o ponto P1 de incersa
 	y = p->y1;
 	
 	// corrige limites para P1
-	if(x > 83)  x = 83;
-	if(y > 47)  y = 47;
+	if(x > MAX_WIDTH)  x = MAX_WIDTH;
+	if(y > MAX_HEIGHT)  y = MAX_HEIGHT;
 	
 	larg = f->largura;
 	alt = f->altura;
@@ -976,181 +952,91 @@ void escreve_Nr_Peq(uint32_t x, uint32_t y, int32_t valor, uint32_t quant2Print)
 void desenha_hexagono(struct pontos_t *coord, struct sig_pontos_t *ref, uint32_t prop)
 {
 	struct pontos_t pt;
+	struct sig_pontos_t sig_pt;
 	
 	pt.x1 = coord[0].x1; pt.y1 = coord[0].y1;
 	pt.x2 = coord[0].x2; pt.y2 = coord[0].y2;
+	sig_pt.x1 = ref[0].x1; sig_pt.y1 = ref[0].y1;
+	sig_pt.x2 = ref[0].x2; sig_pt.y2 = ref[0].y2;
 
-	if(ref[0].x1 != ref[0].x2)
-	{
-		if(ref[0].x1 < 0)
-			pt.x1 = coord[0].x1 + 83;
-		else if(ref[0].x1 > 83)
-			pt.x2 = coord[0].x2 + 83; 
-		else if(ref[0].x2 < 0)
-			pt.x2 = coord[0].x2 + 83;
-		else if(ref[0].x2 > 83)
-			pt.x1 = coord[0].x1 + 83;
-	}
-
-	if(ref[0].y1 != ref[0].y2)
-	{
-		if(ref[0].y1 < 0)
-			pt.y1 = coord[0].y1 + 47;
-		else if(ref[0].y1 > 47)
-			pt.y2 = coord[0].y2 + 47; 
-		else if(ref[0].y2 < 0)
-			pt.y2 = coord[0].y2 + 47;
-		else if(ref[0].y2 > 47)
-			pt.y1 = coord[0].y1 + 47;
-	}
-
+	auto_map_XY(&pt, &sig_pt);
 	desenha_linha(&pt, prop);
 
 	pt.x1 = coord[0].x2; pt.y1 = coord[0].y2;
 	pt.x2 = coord[0].x3; pt.y2 = coord[0].y3;
+	sig_pt.x1 = ref[0].x2; sig_pt.y1 = ref[0].y2;
+	sig_pt.x2 = ref[0].x3; sig_pt.y2 = ref[0].y3;
 
-	if(ref[0].x2 != ref[0].x3)
-	{
-		if(ref[0].x2 < 0)
-			pt.x1 = coord[0].x2 + 83;
-		else if(ref[0].x2 > 83)
-			pt.x2 = coord[0].x3 + 83; 
-		else if(ref[0].x3 < 0)
-			pt.x2 = coord[0].x3 + 83;
-		else if(ref[0].x3 > 83)
-			pt.x1 = coord[0].x2 + 83;
-	}
-
-	if(ref[0].y2 != ref[0].y3)
-	{
-		if(ref[0].y2 < 0)
-			pt.y1 = coord[0].y2 + 47;
-		else if(ref[0].y2 > 47)
-			pt.y2 = coord[0].y3 + 47; 
-		else if(ref[0].y3 < 0)
-			pt.y2 = coord[0].y3 + 47;
-		else if(ref[0].y3 > 47)
-			pt.y1 = coord[0].y2 + 47;
-	}
-
+	auto_map_XY(&pt, &sig_pt);
 	desenha_linha(&pt, prop);
 
 	pt.x1 = coord[0].x3; pt.y1 = coord[0].y3;
 	pt.x2 = coord[1].x1; pt.y2 = coord[1].y1;
-
-	if(ref[0].x3 != ref[1].x1)
-	{
-		if(ref[0].x3 < 0)
-			pt.x1 = coord[0].x3 + 83;
-		else if(ref[0].x3 > 83)
-			pt.x2 = coord[1].x1 + 83; 
-		else if(ref[1].x1 < 0)
-			pt.x2 = coord[1].x1 + 83;
-		else if(ref[1].x1 > 83)
-			pt.x1 = coord[0].x3 + 83;
-	}
-
-	if(ref[0].y3 != ref[1].y1)
-	{
-		if(ref[0].y3 < 0)
-			pt.y1 = coord[0].y3 + 47;
-		else if(ref[0].y3 > 47)
-			pt.y2 = coord[1].y1 + 47; 
-		else if(ref[1].y1 < 0)
-			pt.y2 = coord[1].y1 + 47;
-		else if(ref[1].y1 > 47)
-			pt.y1 = coord[0].y3 + 47;
-	}
-
+	sig_pt.x1 = ref[0].x3; sig_pt.y1 = ref[0].y3;
+	sig_pt.x2 = ref[1].x1; sig_pt.y2 = ref[1].y1;
+	
+	auto_map_XY(&pt, &sig_pt);
 	desenha_linha(&pt, prop);
 
 	pt.x1 = coord[1].x1; pt.y1 = coord[1].y1;
 	pt.x2 = coord[1].x2; pt.y2 = coord[1].y2;
+	sig_pt.x1 = ref[1].x1; sig_pt.y1 = ref[1].y1;
+	sig_pt.x2 = ref[1].x2; sig_pt.y2 = ref[1].y2;
 
-	if(ref[1].x1 != ref[1].x2)
-	{
-		if(ref[1].x1 < 0)
-			pt.x1 = coord[1].x1 + 83;
-		else if(ref[1].x1 > 83)
-			pt.x2 = coord[1].x2 + 83; 
-		else if(ref[1].x2 < 0)
-			pt.x2 = coord[1].x2 + 83;
-		else if(ref[1].x2 > 83)
-			pt.x1 = coord[1].x1 + 83;
-	}
-
-	if(ref[1].y1 != ref[1].y2)
-	{
-		if(ref[1].y1 < 0)
-			pt.y1 = coord[1].y1 + 47;
-		else if(ref[1].y1 > 47)
-			pt.y2 = coord[1].y2 + 47; 
-		else if(ref[1].y2 < 0)
-			pt.y2 = coord[1].y2 + 47;
-		else if(ref[1].y2 > 47)
-			pt.y1 = coord[1].y1 + 47;
-	}
-
+	auto_map_XY(&pt, &sig_pt);
 	desenha_linha(&pt, prop);
 
 	pt.x1 = coord[1].x2; pt.y1 = coord[1].y2;
 	pt.x2 = coord[1].x3; pt.y2 = coord[1].y3;
+	sig_pt.x1 = ref[1].x2; sig_pt.y1 = ref[1].y2;
+	sig_pt.x2 = ref[1].x3; sig_pt.y2 = ref[1].y3;
 
-	if(ref[1].x2 != ref[1].x3)
-	{
-		if(ref[1].x2 < 0)
-			pt.x1 = coord[1].x2 + 83;
-		else if(ref[1].x2 > 83)
-			pt.x2 = coord[1].x3 + 83; 
-		else if(ref[1].x3 < 0)
-			pt.x2 = coord[1].x3 + 83;
-		else if(ref[1].x3 > 83)
-			pt.x1 = coord[1].x2 + 83;
-	}
-
-	if(ref[1].y2 != ref[1].y3)
-	{
-		if(ref[1].y2 < 0)
-			pt.y1 = coord[1].y2 + 47;
-		else if(ref[1].y2 > 47)
-			pt.y2 = coord[1].y3 + 47; 
-		else if(ref[1].y3 < 0)
-			pt.y2 = coord[1].y3 + 47;
-		else if(ref[1].y3 > 47)
-			pt.y1 = coord[1].y2 + 47;
-	}
-
+	auto_map_XY(&pt, &sig_pt);
 	desenha_linha(&pt, prop);
 
 	pt.x1 = coord[1].x3; pt.y1 = coord[1].y3;
 	pt.x2 = coord[0].x1; pt.y2 = coord[0].y1;
-
-	if(ref[1].x3 != ref[0].x1)
-	{
-		if(ref[1].x3 < 0)
-			pt.x1 = coord[1].x3 + 83;
-		else if(ref[1].x3 > 83)
-			pt.x2 = coord[0].x1 + 83; 
-		else if(ref[0].x1 < 0)
-			pt.x2 = coord[0].x1 + 83;
-		else if(ref[0].x1 > 83)
-			pt.x1 = coord[1].x3 + 83;
-	}
-
-	if(ref[1].y3 != ref[0].y1)
-	{
-		if(ref[1].y3 < 0)
-			pt.y1 = coord[1].y3 + 47;
-		else if(ref[1].y3 > 47)
-			pt.y2 = coord[0].y1 + 47; 
-		else if(ref[0].y1 < 0)
-			pt.y2 = coord[0].y1 + 47;
-		else if(ref[0].y1 > 47)
-			pt.y1 = coord[1].y3 + 47;
-	}
-
+	sig_pt.x1 = ref[1].x3; sig_pt.y1 = ref[1].y3;
+	sig_pt.x2 = ref[0].x1; sig_pt.y2 = ref[0].y1;
+	
+	auto_map_XY(&pt, &sig_pt);
 	desenha_linha(&pt, prop);
 }
+
+void girar_triangulo_horario(struct pontos_t *p, struct sig_pontos_t *ref)
+{
+	rotate_clock_wise(&p->x1, &p->y1, &ref->x1, &ref->y1);
+	rotate_clock_wise(&p->x2, &p->y2, &ref->x2, &ref->y2);
+	rotate_clock_wise(&p->x3, &p->y3, &ref->x3, &ref->y3);
+}
+
+void girar_triangulo_antihorario(struct pontos_t *p, struct sig_pontos_t *ref)
+{
+	rotate_counter_clock_wise(&p->x1, &p->y1, &ref->x1, &ref->y1);
+	rotate_counter_clock_wise(&p->x2, &p->y2, &ref->x2, &ref->y2);
+	rotate_counter_clock_wise(&p->x3, &p->y3, &ref->x3, &ref->y3);
+}
+
+void girar_hexagono_horario(struct pontos_t *coord, struct sig_pontos_t *ref)
+{
+	rotate_clock_wise(&coord[0].x1, &coord[0].y1, &ref[0].x1, &ref[0].y1);
+	rotate_clock_wise(&coord[0].x2, &coord[0].y2, &ref[0].x2, &ref[0].y2);
+	rotate_clock_wise(&coord[0].x3, &coord[0].y3, &ref[0].x3, &ref[0].y3);
+	rotate_clock_wise(&coord[1].x1, &coord[1].y1, &ref[1].x1, &ref[1].y1);
+	rotate_clock_wise(&coord[1].x2, &coord[1].y2, &ref[1].x2, &ref[1].y2);
+	rotate_clock_wise(&coord[1].x3, &coord[1].y3, &ref[1].x3, &ref[1].y3);
+}
+
+void girar_hexagono_antihorario(struct pontos_t *coord, struct sig_pontos_t *ref)
+{
+	rotate_counter_clock_wise(&coord[0].x1, &coord[0].y1, &ref[0].x1, &ref[0].y1);
+	rotate_counter_clock_wise(&coord[0].x2, &coord[0].y2, &ref[0].x2, &ref[0].y2);
+	rotate_counter_clock_wise(&coord[0].x3, &coord[0].y3, &ref[0].x3, &ref[0].y3);
+	rotate_counter_clock_wise(&coord[1].x1, &coord[1].y1, &ref[1].x1, &ref[1].y1);
+	rotate_counter_clock_wise(&coord[1].x2, &coord[1].y2, &ref[1].x2, &ref[1].y2);
+	rotate_counter_clock_wise(&coord[1].x3, &coord[1].y3, &ref[1].x3, &ref[1].y3);
+}
+
 //----------------------------------------------------------------------------------------------
 
 signed int sin30(signed int angle)

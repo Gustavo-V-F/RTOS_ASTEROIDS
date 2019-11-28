@@ -49,7 +49,7 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
-osThreadId Space_ship_handle;
+osThreadId Space_shipHandle;
 /* USER CODE BEGIN PV */
 uint32_t ADC_buffer[2];
 uint32_t Valor_ADC[2];
@@ -64,6 +64,7 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 void Space_ship_task(void const * argument);
+
 /* USER CODE BEGIN PFP */
 void LCD_print_task(void const * argument);
 /* USER CODE END PFP */
@@ -90,7 +91,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  HAL_ADC_MspInit(&hadc1);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -105,7 +106,8 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_ADC_Start_DMA(&hadc1, ADC_buffer, 2);
+  HAL_ADC_Start_IT(&hadc1);
   // LCD 5110 initialization
   inic_LCD();
   limpa_LCD();
@@ -146,7 +148,7 @@ int main(void)
   /* Create the thread(s) */
   /* definition and creation of Space_ship */
   osThreadDef(Space_ship, Space_ship_task, osPriorityNormal, 0, 100);
-  Space_ship_handle = osThreadCreate(osThread(Space_ship), NULL);
+  Space_shipHandle = osThreadCreate(osThread(Space_ship), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -255,14 +257,14 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel 
   */
+  sConfig.Channel = ADC_CHANNEL_2;
   sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN ADC1_Init 2 */
-  HAL_ADC_Start_DMA(&hadc1, ADC_buffer, 2);
-  HAL_ADC_Start_IT(&hadc1);
+
   /* USER CODE END ADC1_Init 2 */
 
 }
@@ -362,17 +364,17 @@ void Space_ship_task(void const * argument)
   signed int i = 0;
 
   Space_ship_points.x1 = 39;
-  Space_ship_points.y1 = 21;
+  Space_ship_points.y1 = 44;
   Space_ship_points.x2 = 41;
-  Space_ship_points.y2 = 25;
+  Space_ship_points.y2 = 0;
   Space_ship_points.x3 = 43;
-  Space_ship_points.y3 = 21;
+  Space_ship_points.y3 = 44;
   Space_ship_reference.x1 = 41;
-  Space_ship_reference.y1 = 23;
+  Space_ship_reference.y1 = 46;
   Space_ship_reference.x2 = 41;
-  Space_ship_reference.y2 = 23;
+  Space_ship_reference.y2 = -2;
   Space_ship_reference.x3 = 41;
-  Space_ship_reference.y3 = 23;
+  Space_ship_reference.y3 = 46;
 
   Asteroid_points[0].x1 = 69;
   Asteroid_points[0].y1 = 13;
@@ -401,6 +403,8 @@ void Space_ship_task(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+    escreve_Nr_Peq(10,29, Valor_ADC[0], 10);
+		escreve_Nr_Peq(10,39, Valor_ADC[1], 10);
     desenha_triangulo(&Space_ship_points, &Space_ship_reference, (uint32_t) 1);
     desenha_hexagono(Asteroid_points, Asteroid_reference, 1);
     osDelay(1000);
@@ -411,22 +415,19 @@ void Space_ship_task(void const * argument)
 
     if(i < 360)
     {
-      rotate_counter_clock_wise(&Space_ship_points.x1, &Space_ship_points.y1, &Space_ship_reference.x1, &Space_ship_reference.y1);
-      rotate_counter_clock_wise(&Space_ship_points.x2, &Space_ship_points.y2, &Space_ship_reference.x2, &Space_ship_reference.y2);
-      rotate_counter_clock_wise(&Space_ship_points.x3, &Space_ship_points.y3, &Space_ship_reference.x3, &Space_ship_reference.y3);
-      rotate_clock_wise(&Asteroid_points[0].x1, &Asteroid_points[0].y1, &Asteroid_reference[0].x1, &Asteroid_reference[0].y1);
-      rotate_clock_wise(&Asteroid_points[0].x2, &Asteroid_points[0].y2, &Asteroid_reference[0].x2, &Asteroid_reference[0].y2);
-      rotate_clock_wise(&Asteroid_points[0].x3, &Asteroid_points[0].y3, &Asteroid_reference[0].x3, &Asteroid_reference[0].y3);
-      rotate_clock_wise(&Asteroid_points[1].x1, &Asteroid_points[1].y1, &Asteroid_reference[1].x1, &Asteroid_reference[1].y1);
-      rotate_clock_wise(&Asteroid_points[1].x2, &Asteroid_points[1].y2, &Asteroid_reference[1].x2, &Asteroid_reference[1].y2);
-      rotate_clock_wise(&Asteroid_points[1].x3, &Asteroid_points[1].y3, &Asteroid_reference[1].x3, &Asteroid_reference[1].y3);
-      
+      girar_triangulo_antihorario(&Space_ship_points, &Space_ship_reference);
+      girar_hexagono_horario(Asteroid_points, Asteroid_reference);
       i += 30;
 
-      if((i % 360) == 0)
+      if(i == 180)
+      {
+        Asteroid_points[0].x3++;
+        Asteroid_points[1].x1--;
+      }else if(i == 360)
       {
         Asteroid_points[0].x1--;
         Asteroid_points[1].x3++;
+        i = 0;
       }
     }
 
