@@ -117,7 +117,7 @@ const unsigned char nr_peq [] = {
 
 static const uint32_t cos_table[] = 
 {
-	1000, 866, 500, 0
+	1000, 707, 0
 };
 
 // Espelho da tela - FRAME BUFFER - necess�rio na escrita p/ alterar pixels sem alterar os demais dentro de um byte
@@ -231,6 +231,83 @@ void auto_map_XY(struct pontos_t *pt, struct sig_pontos_t *ref)
 	}
 }
 
+void move_XY(int32_t x, int32_t y, struct pontos_t *p, struct sig_pontos_t *ref)
+{
+	struct sig_pontos_t pt;
+
+	pt.x1 = p->x1 + x; pt.x2 = p->x2 + x; pt.x3 = p->x3 + x;
+	pt.y1 = p->y1 + y; pt.y2 = p->y2 + y; pt.y3 = p->y3 + y;
+	p->x1 += x; p->x2 += x; p->x3 += x;
+	p->y1 += y; p->y2 += y; p->y3 += y;
+	ref->x1 += x; ref->x2 += x; ref->x3 += x;
+	ref->y1 += y; ref->y2 += y; ref->y3 += y;
+
+	if(pt.x1 < 0)
+	{	
+		p->x1 = pt.x1+MAX_WIDTH+1;
+		ref->x1 += (MAX_WIDTH+1);
+	}
+	else if(pt.x1 > MAX_WIDTH)
+	{
+		p->x1 = pt.x1-MAX_WIDTH-1;
+		ref->x1 -= (MAX_WIDTH+1);
+	}
+	
+	if(pt.x2 < 0)
+	{	
+		p->x2 = pt.x2+MAX_WIDTH+1;
+		ref->x2 += (MAX_WIDTH+1);
+	}
+	else if(pt.x2 > MAX_WIDTH)
+	{
+		p->x2 = pt.x2-MAX_WIDTH-1;
+		ref->x2 -= (MAX_WIDTH+1);
+	}
+
+	if(pt.x3 < 0)
+	{	
+		p->x3 = pt.x3+MAX_WIDTH+1;
+		ref->x3 += (MAX_WIDTH+1);
+	}
+	else if(pt.x3 > MAX_WIDTH)
+	{
+		p->x3 = pt.x3-MAX_WIDTH-1;
+		ref->x3 -= (MAX_WIDTH+1);
+	}
+
+	if(pt.y1 < 0)
+	{	
+		p->y1 = pt.y1+MAX_HEIGHT+1;
+		ref->y1 += (MAX_HEIGHT+1);
+	}
+	else if(pt.y1 > MAX_HEIGHT)
+	{
+		p->y1 = pt.y1-MAX_HEIGHT-1;
+		ref->y1 -= (MAX_HEIGHT+1);
+	}
+
+	if(pt.y2 < 0)
+	{	
+		p->y2 = pt.y2+MAX_HEIGHT+1;
+		ref->y2 += (MAX_HEIGHT+1);
+	}
+	else if(pt.y2 > MAX_HEIGHT)
+	{
+		p->y2 = pt.y2-MAX_HEIGHT-1;
+		ref->y2 -= (MAX_HEIGHT+1);
+	}
+
+	if(pt.y3 < 0)
+	{	
+		p->y3 = pt.y3+MAX_HEIGHT+1;
+		ref->y3 += (MAX_HEIGHT+1);
+	}
+	else if(pt.y3 > MAX_HEIGHT)
+	{
+		p->y3 = pt.y3-MAX_HEIGHT-1;
+		ref->y3 -= (MAX_HEIGHT+1);
+	}
+}
 
 void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_t *y0)
 {
@@ -239,8 +316,8 @@ void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_t *y0)
 	x1 = *x_p-*x0;
 	y1 = *y_p-*y0;
 
-	x2 = (x1*cos30(30)-y1*sin30(30))+(*x0*ROUNDING_DIGITS);
-	y2 = (x1*sin30(30)+y1*cos30(30))+(*y0*ROUNDING_DIGITS);
+	x2 = (x1*cos45(45)-y1*sin45(45))+(*x0*ROUNDING_DIGITS);
+	y2 = (x1*sin45(45)+y1*cos45(45))+(*y0*ROUNDING_DIGITS);
 
 	*x_p = x2;
 
@@ -302,8 +379,8 @@ void rotate_counter_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_
 	x1 = *x_p-*x0;
 	y1 = *y_p-*y0;
 
-	x2 = (x1*cos30(30)+y1*sin30(30))+(*x0*ROUNDING_DIGITS);
-	y2 = (y1*cos30(30)-x1*sin30(30))+(*y0*ROUNDING_DIGITS);
+	x2 = (x1*cos45(45)+y1*sin45(45))+(*x0*ROUNDING_DIGITS);
+	y2 = (y1*cos45(45)-x1*sin45(45))+(*y0*ROUNDING_DIGITS);
 
 	*x_p = x2;
 
@@ -1039,12 +1116,12 @@ void girar_hexagono_antihorario(struct pontos_t *coord, struct sig_pontos_t *ref
 
 //----------------------------------------------------------------------------------------------
 
-signed int sin30(signed int angle)
+signed int sin45(signed int angle)
 {
-	return cos30(angle-90);
+	return cos45(angle-90);
 }
 
-signed int cos30(signed int angle)
+signed int cos45(signed int angle)
 {
 	uint32_t turns = 0;
 
@@ -1056,17 +1133,17 @@ signed int cos30(signed int angle)
 	if(angle < 0)
 		angle += 360;
 
-	if((angle % 30) > 0)
-		angle -= (angle % 30);
+	if((angle % 45) > 0)
+		angle -= (angle % 45);
 
 	if(angle <= 90)
-		return cos_table[angle/30]; 
+		return cos_table[angle/45]; 
 	else if(angle > 90 && angle <= 180)
-		return -cos_table[(180-angle)/30];
+		return -cos_table[(180-angle)/45];
 	else if(angle > 180 && angle <= 270)
-		return -cos_table[(angle-180)/30];
+		return -cos_table[(angle-180)/45];
 	else if(angle > 270 && angle < 360)
-		return cos_table[(360-angle)/30];
+		return cos_table[(360-angle)/45];
 	else
 		return 0;
 }

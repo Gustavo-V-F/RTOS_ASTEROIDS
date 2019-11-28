@@ -68,6 +68,7 @@ void inic_LCD();
 void goto_XY(uint32_t x, uint32_t y);
 uint32_t index_XY(uint32_t x, uint32_t y);
 void auto_map_XY(struct pontos_t *pt, struct sig_pontos_t *ref);
+void move_XY(int32_t x, int32_t y, struct pontos_t *p, struct sig_pontos_t *ref);
 void rotate_clock_wise(uint32_t *x, uint32_t *y, int32_t *x0, int32_t *y0);
 void rotate_counter_clock_wise(uint32_t *x, uint32_t *y, int32_t *x0, int32_t *y0);
 void escreve2fb(unsigned char imagem[])	;
@@ -97,8 +98,8 @@ void girar_hexagono_horario(struct pontos_t *coord, struct sig_pontos_t *ref);
 void girar_hexagono_antihorario(struct pontos_t *coord, struct sig_pontos_t *ref);
 
 // Sin and cos functions
-signed int sin30(signed int angle);
-signed int cos30(signed int angle);
+signed int sin45(signed int angle);
+signed int cos45(signed int angle);
 
 // Math functions
 uint32_t round_number(uint32_t number, uint32_t digits);
