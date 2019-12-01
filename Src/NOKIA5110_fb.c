@@ -1114,6 +1114,69 @@ void girar_hexagono_antihorario(struct pontos_t *coord, struct sig_pontos_t *ref
 	rotate_counter_clock_wise(&coord[1].x3, &coord[1].y3, &ref[1].x3, &ref[1].y3);
 }
 
+uint32_t colisao_linha(struct pontos_t *coord, struct sig_pontos_t *ref)
+{
+	uint32_t comp0 = 0, comp1 = 0;
+	int32_t dist0, dist1, div, x1, x2, x3, x4, y1, y2, y3 ,y4;
+	struct pontos_t pt0, pt1;
+
+	pt0.x1 = coord[0].x1; pt0.x2 = coord[0].x2;
+	pt0.y1 = coord[0].y1; pt0.y2 = coord[0].y2;
+	pt1.x1 = coord[1].x1; pt1.x2 = coord[1].x2;
+	pt1.y1 = coord[1].y1; pt1.y2 = coord[1].y2;
+	
+	auto_map_XY(&pt0, &ref[0]);
+	auto_map_XY(&pt1, &ref[1]);
+
+	x1 = pt0.x1; x2 = pt0.x2; x3 = pt1.x1; x4 = pt1.x2;
+	y1 = pt0.y1; y2 = pt0.y2; y3 = pt1.y1; y4 = pt1.y2;
+
+	div = ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+
+	dist0 = (((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3))*ROUNDING_DIGITS)/div;
+ 	dist1 = (((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3))*ROUNDING_DIGITS)/div;
+
+	if(dist0 >= 0 && dist0 <= ROUNDING_DIGITS && dist1 >= 0 && dist1 <= ROUNDING_DIGITS)
+		return 1;
+
+	if((x1 > MAX_WIDTH) || (x2 > MAX_WIDTH))
+	{
+		x1 -= MAX_WIDTH; x2 -= MAX_WIDTH;	
+		comp0 = 1;
+	}
+
+	if((y1 > MAX_HEIGHT) || (y2 > MAX_HEIGHT))
+	{
+		y1 -= MAX_HEIGHT; y2 -= MAX_HEIGHT;
+		comp0 = 1;
+	}
+
+	if((x3 > MAX_WIDTH) || (x4 > MAX_WIDTH))
+	{
+		x3 -= MAX_WIDTH; x4 -= MAX_WIDTH;	
+		comp1 = 1;
+	}
+
+	if((y3 > MAX_HEIGHT) || (y4 > MAX_HEIGHT))
+	{
+		y3 -= MAX_HEIGHT; y4 -= MAX_HEIGHT;
+		comp1 = 1;
+	}
+
+	if(comp0 != comp1)
+	{
+		div = ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+
+		dist0 = (((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3))*ROUNDING_DIGITS)/div;
+ 		dist1 = (((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3))*ROUNDING_DIGITS)/div;
+
+		if(dist0 >= 0 && dist0 <= ROUNDING_DIGITS && dist1 >= 0 && dist1 <= ROUNDING_DIGITS)
+			return 1;
+	}
+
+	return 0;
+}
+
 //----------------------------------------------------------------------------------------------
 
 signed int sin45(signed int angle)

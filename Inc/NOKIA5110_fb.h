@@ -96,6 +96,7 @@ void girar_triangulo_horario(struct pontos_t *p, struct sig_pontos_t *ref);
 void girar_triangulo_antihorario(struct pontos_t *p, struct sig_pontos_t *ref);
 void girar_hexagono_horario(struct pontos_t *coord, struct sig_pontos_t *ref);
 void girar_hexagono_antihorario(struct pontos_t *coord, struct sig_pontos_t *ref);
+uint32_t colisao_linha(struct pontos_t *coord, struct sig_pontos_t *ref);
 
 // Sin and cos functions
 signed int sin45(signed int angle);
