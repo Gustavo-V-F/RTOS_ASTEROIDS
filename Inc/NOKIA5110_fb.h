@@ -84,19 +84,25 @@ void string_LCD_Nr(char * msg, uint32_t valor, uint32_t quant2Print);
 void desenha_pixel(uint32_t x, uint32_t y, uint32_t propriedade);
 void desenha_linha(struct pontos_t *coord, uint32_t prop);
 void desenha_circulo(int32_t x0, int32_t y0, int32_t radius, uint32_t prop);
-void desenha_retangulo(struct  pontos_t *t, uint32_t prop);
-void desenha_triangulo(struct  pontos_t *p, struct sig_pontos_t *ref, uint32_t prop);
 void desenha_fig(struct  pontos_t *p, const struct figura_t *figura);
 
 void escreve_Nr_Peq(uint32_t x, uint32_t y, int32_t valor, uint32_t quant2Print);
 
 // New Functions
+void desenha_retangulo(struct  pontos_t *t, struct sig_pontos_t *ref, uint32_t prop);
+void desenha_triangulo(struct  pontos_t *p, struct sig_pontos_t *ref, uint32_t prop);
 void desenha_hexagono(struct pontos_t *coord, struct sig_pontos_t *ref, uint32_t prop);
 void girar_triangulo_horario(struct pontos_t *p, struct sig_pontos_t *ref);
 void girar_triangulo_antihorario(struct pontos_t *p, struct sig_pontos_t *ref);
+void girar_retangulo_horario(struct pontos_t *p, struct sig_pontos_t *ref);
+void girar_retangulo_antihorario(struct pontos_t *p, struct sig_pontos_t *ref);
 void girar_hexagono_horario(struct pontos_t *coord, struct sig_pontos_t *ref);
 void girar_hexagono_antihorario(struct pontos_t *coord, struct sig_pontos_t *ref);
 uint32_t colisao_linha(struct pontos_t *coord, struct sig_pontos_t *ref);
+uint32_t colisao_retangulo(struct pontos_t *coord, struct sig_pontos_t *ref);
+uint32_t colisao_linha_retangulo(struct pontos_t *lin, struct sig_pontos_t *lin_ref, struct pontos_t *ret, struct sig_pontos_t *ret_ref);
+uint32_t colisao_linha_hexagono(struct pontos_t *lin, struct sig_pontos_t *lin_ref, struct pontos_t *hex, struct sig_pontos_t *hex_ref);
+uint32_t colisao_triangulo_hexagono(struct pontos_t *tri, struct sig_pontos_t *tri_ref, struct pontos_t *hex, struct sig_pontos_t *hex_ref);
 
 // Sin and cos functions
 signed int sin45(signed int angle);

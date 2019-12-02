@@ -207,12 +207,12 @@ void auto_map_XY(struct pontos_t *pt, struct sig_pontos_t *ref)
 	if(ref->x1 != ref->x2)
 	{
 		if(ref->x1 < 0)
-			pt->x1 = pt->x1 + MAX_WIDTH;
+			pt->x1 = pt->x1 + MAX_WIDTH+1;
 		else if(ref->x1 > MAX_WIDTH)
 			pt->x2 = pt->x2 + MAX_WIDTH+1; 
 		
 		if(ref->x2 < 0)
-			pt->x2 = pt->x2 + MAX_WIDTH;
+			pt->x2 = pt->x2 + MAX_WIDTH+1;
 		else if(ref->x2 > MAX_WIDTH)
 			pt->x1 = pt->x1 + MAX_WIDTH+1;
 	}
@@ -220,12 +220,12 @@ void auto_map_XY(struct pontos_t *pt, struct sig_pontos_t *ref)
 	if(ref->y1 != ref->y2)
 	{
 		if(ref->y1 < 0)
-			pt->y1 = pt->y1 + MAX_HEIGHT;
+			pt->y1 = pt->y1 + MAX_HEIGHT+1;
 		else if(ref->y1 > MAX_HEIGHT)
 			pt->y2 = pt->y2 + MAX_HEIGHT+1; 
 		
 		if(ref->y2 < 0)
-			pt->y2 = pt->y2 + MAX_HEIGHT;
+			pt->y2 = pt->y2 + MAX_HEIGHT+1;
 		else if(ref->y2 > MAX_HEIGHT)
 			pt->y1 = pt->y1 + MAX_HEIGHT+1;
 	}
@@ -311,7 +311,7 @@ void move_XY(int32_t x, int32_t y, struct pontos_t *p, struct sig_pontos_t *ref)
 
 void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_t *y0)
 {
-	signed int x1, y1, x2, y2;
+	int32_t x1, y1, x2, y2;
 
 	x1 = *x_p-*x0;
 	y1 = *y_p-*y0;
@@ -330,7 +330,7 @@ void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_t *y0)
 		x2 = round_number(x2, 2);
 		*x_p = x2-MAX_WIDTH*ROUNDING_DIGITS-ROUNDING_DIGITS;
 		*x0 = *x0-MAX_WIDTH-1;
-	}	
+	}
 
 	*y_p = y2;
 
@@ -349,7 +349,7 @@ void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_t *y0)
 	{
 		if(*x_p < ROUNDING_DIGITS)
 		{
-			if(*x_p >= (ROUNDING_DIGITS >> 2))
+			if(*x_p >= (ROUNDING_DIGITS >> 1))
 				*x_p = 1;
 			else
 				*x_p = 0;
@@ -362,7 +362,7 @@ void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_t *y0)
 	{
 		if(*y_p < ROUNDING_DIGITS)
 		{
-			if(*y_p >= (ROUNDING_DIGITS >> 2))
+			if(*y_p >= (ROUNDING_DIGITS >> 1))
 				*y_p = 1;
 			else
 				*y_p = 0;
@@ -412,7 +412,7 @@ void rotate_counter_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_
 	{
 		if(*x_p < ROUNDING_DIGITS)
 		{
-			if(*x_p >= (ROUNDING_DIGITS >> 2))
+			if(*x_p >= (ROUNDING_DIGITS >> 1))
 				*x_p = 1;
 			else
 				*x_p = 0;
@@ -425,7 +425,7 @@ void rotate_counter_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_
 	{
 		if(*y_p < ROUNDING_DIGITS)
 		{
-			if(*y_p >= (ROUNDING_DIGITS >> 2))
+			if(*y_p >= (ROUNDING_DIGITS >> 1))
 				*y_p = 1;
 			else
 				*y_p = 0;
@@ -732,8 +732,8 @@ void desenha_linha(struct  pontos_t *p,		/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2,
 //--------------------------------------------------------------------------------------------------------------
 // Desenha Circulo - Algoritmo de Ponto M�dio http://rosettacode.org/wiki/Bitmap/Midpoint_circle_algorithm#C
 //--------------------------------------------------------------------------------------------------------------
-void desenha_circulo(int32_t x0, int32_t y0,int32_t radius,	// valores int se fazem necess�rio devido as compara��es
-											 uint32_t prop) // 0 =  paga pixel, 1 = liga pixel				
+void desenha_circulo(int32_t x0, int32_t y0, int32_t radius,	// valores int se fazem necess�rio devido as compara��es
+											 uint32_t prop) 	// 0 =  paga pixel, 1 = liga pixel				
 {
 	  int f, ddF_x, ddF_y, x, y;
 	  
@@ -783,26 +783,32 @@ void desenha_circulo(int32_t x0, int32_t y0,int32_t radius,	// valores int se fa
 *		|	        |
 *		------------p2
 */
-void desenha_retangulo(struct  pontos_t *p,	uint32_t prop)	/*  p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2, passagem dos pontos por struct	*/
-															/*  ponto superior esquerdo e ponto inferior direito					*/
-															/* 0 =  apaga pixel, 1 = liga pixel, 									*/
-															/* 2 = preenchimento pixel apagado, 3 = preenchimento pixel ligado		*/
-{	struct pontos_t pr;
+void desenha_retangulo(struct  pontos_t *p,	struct sig_pontos_t *ref, /* p.x1=x1, p.y1=y1, p.x2=x2, p.y2=y2, passagem dos pontos por struct	    */
+																	  /* ponto superior esquerdo e ponto inferior direito					    */											
+											           				  /* ref.x1, ref.y1, ref.x2, ref.y2 são pontos de referência de cada ponto  */
+													   uint32_t prop) /* 0 =  apaga pixel, 1 = liga pixel, 									    */
+															          /* 2 = preenchimento pixel apagado, 3 = preenchimento pixel ligado	    */
+{	struct pontos_t pc, pr;
 	uint32_t pxl, i;
-			
+
+	pc.x1 = p->x1; pc.y1 = p->y1;
+	pc.x2 = p->x2; pc.y2 = p->y2;
+
+	auto_map_XY(&pc, ref);
+
 	if(prop < 2)								// desenho com quatro linhas
 	{
-		pr.x1 = p->x1; pr.y1 = p->y1;
-		pr.x2 = p->x1; pr.y2 = p->y2;
+		pr.x1 = pc.x1; pr.y1 = pc.y1;
+		pr.x2 = pc.x1; pr.y2 = pc.y2;
 		desenha_linha(&pr,prop);
 		
-		pr.x2 = p->x2; pr.y2 = p->y1;
+		pr.x2 = pc.x2; pr.y2 = pc.y1;
 		desenha_linha(&pr,prop);
 		
-		pr.x1 = p->x2; pr.y1 = p->y2;
+		pr.x1 = pc.x2; pr.y1 = pc.y2;
 		desenha_linha(&pr,prop);
 		
-		pr.x2 = p->x1; pr.y2 = p->y2;
+		pr.x2 = pc.x1; pr.y2 = pc.y2;
 		desenha_linha(&pr,prop);
 	}
 	else										// preenchimento desenhando v�rias linhas
@@ -812,10 +818,10 @@ void desenha_retangulo(struct  pontos_t *p,	uint32_t prop)	/*  p.x1=x1, p.y1=y1,
 		else
 			pxl = 1;
 		
-		pr.y1 = p->y1;
-		pr.y2 = p->y2;
+		pr.y1 = pc.y1;
+		pr.y2 = pc.y2;
 		
-		for(i = p->x1; i <= p->x2; i++)			// desenha as linhas verticalmente
+		for(i = pc.x1; i <= pc.x2; i++)			// desenha as linhas verticalmente
 		{
 			pr.x1 = i;
 			pr.x2 = i;
@@ -1094,6 +1100,17 @@ void girar_triangulo_antihorario(struct pontos_t *p, struct sig_pontos_t *ref)
 	rotate_counter_clock_wise(&p->x3, &p->y3, &ref->x3, &ref->y3);
 }
 
+void girar_retangulo_horario(struct pontos_t *p, struct sig_pontos_t *ref)
+{
+	rotate_clock_wise(&p->x1, &p->y1, &ref->x1, &ref->y1);
+	rotate_clock_wise(&p->x2, &p->y2, &ref->x2, &ref->y2);
+}
+
+void girar_retangulo_antihorario(struct pontos_t *p, struct sig_pontos_t *ref)
+{
+	rotate_counter_clock_wise(&p->x1, &p->y1, &ref->x1, &ref->y1);
+	rotate_counter_clock_wise(&p->x2, &p->y2, &ref->x2, &ref->y2);
+}
 void girar_hexagono_horario(struct pontos_t *coord, struct sig_pontos_t *ref)
 {
 	rotate_clock_wise(&coord[0].x1, &coord[0].y1, &ref[0].x1, &ref[0].y1);
@@ -1176,6 +1193,76 @@ uint32_t colisao_linha(struct pontos_t *coord, struct sig_pontos_t *ref)
 
 	return 0;
 }
+
+uint32_t colisao_retangulo(struct pontos_t *coord, struct sig_pontos_t *ref)
+{
+	uint32_t comp0 = 0, comp1 = 0; 
+	int32_t x1, x2, x3, x4, y1, y2, y3, y4;
+	struct pontos_t pt0, pt1;
+	
+	pt0.x1 = coord[0].x1; pt0.y1 = coord[0].y1;
+	pt0.x2 = coord[0].x2; pt0.y2 = coord[0].y2;
+	pt1.x1 = coord[1].x1; pt1.y1 = coord[1].y1;
+	pt1.x2 = coord[1].x2; pt1.y2 = coord[1].y2;
+	
+	auto_map_XY(&pt0, &ref[0]);
+	auto_map_XY(&pt1, &ref[1]);
+
+	x1 = pt0.x1; x2 = pt0.x2; y1 = pt0.y1; y2 = pt0.y2;
+	x3 = pt1.x1; x4 = pt1.x2; y3 = pt1.y1; y4 = pt1.y2;
+
+	if (x2 >= x3 && x1 <= x4 && y2 >= y3 && y1 <= y4) 
+    	return 1;
+
+	if((x1 > MAX_WIDTH) || (x2 > MAX_WIDTH))
+	{
+		x1 -= MAX_WIDTH; x2 -= MAX_WIDTH;	
+		comp0 = 1;
+	}
+
+	if((y1 > MAX_HEIGHT) || (y2 > MAX_HEIGHT))
+	{
+		y1 -= MAX_HEIGHT; y2 -= MAX_HEIGHT;
+		comp0 = 1;
+	}
+
+	if((x3 > MAX_WIDTH) || (x4 > MAX_WIDTH))
+	{
+		x3 -= MAX_WIDTH; x4 -= MAX_WIDTH;	
+		comp1 = 1;
+	}
+
+	if((y3 > MAX_HEIGHT) || (y4 > MAX_HEIGHT))
+	{
+		y3 -= MAX_HEIGHT; y4 -= MAX_HEIGHT;
+		comp1 = 1;
+	}
+
+	if(comp0 != comp1)
+	{
+		if (x2 >= x3 && x1 <= x4 && y2 >= y3 && y1 <= y4) 
+    		return 1;
+	}
+	
+	return 0;
+}
+
+uint32_t colisao_linha_retangulo(struct pontos_t *lin, struct sig_pontos_t *lin_ref, struct pontos_t *ret, struct sig_pontos_t *ret_ref)
+{
+
+}
+
+uint32_t colisao_linha_hexagono(struct pontos_t *lin, struct sig_pontos_t *lin_ref, struct pontos_t *hex, struct sig_pontos_t *hex_ref)
+{
+
+}
+
+uint32_t colisao_triangulo_hexagono(struct pontos_t *tri, struct sig_pontos_t *tri_ref, struct pontos_t *hex, struct sig_pontos_t *hex_ref)
+{
+
+}
+
+
 
 //----------------------------------------------------------------------------------------------
 

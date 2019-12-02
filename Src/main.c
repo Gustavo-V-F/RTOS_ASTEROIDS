@@ -52,13 +52,13 @@ DMA_HandleTypeDef hdma_adc1;
 osThreadId Space_shipHandle;
 osSemaphoreId Draw_semaphoreHandle;
 /* USER CODE BEGIN PV */
-uint32_t prop = 1, ADC_buffer[2], Valor_ADC[2];
+uint32_t prop0 = 1, prop1 = 1,ADC_buffer[2], Valor_ADC[2];
 
 osThreadId LCD_print_handle;
 osThreadId Move_space_ship_handle;
 
-struct pontos_t Space_ship_points, pt[4], Asteroid_points[4];
-struct sig_pontos_t Space_ship_reference, pt_ref[3], Asteroid_reference[4];
+struct pontos_t Space_ship_points, pt[4], Asteroid_points[4], Space_ship_rect, Retangulo;
+struct sig_pontos_t Space_ship_reference, Space_ship_rect_ref, pt_ref[3], Asteroid_reference[4], Retangulo_ref;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -375,6 +375,15 @@ void Move_space_ship_task(void const * argument)
   uint32_t i = 0;
   int32_t angle = 0;
 
+  Retangulo.x1 = 24;
+  Retangulo.x2 = 34;
+  Retangulo.y1 = 40;
+  Retangulo.y2 = 2;
+  Retangulo_ref.x1 = 29;
+  Retangulo_ref.x2 = 29;
+  Retangulo_ref.y1 = 45;
+  Retangulo_ref.y2 = -3;
+
   pt[2].x1 = 50;
   pt[2].x2 = 50;
   pt[2].y1 = 28;
@@ -399,6 +408,15 @@ void Move_space_ship_task(void const * argument)
   Space_ship_reference.y2 = 22;
   Space_ship_reference.x3 = 41;
   Space_ship_reference.y3 = 22;
+
+  Space_ship_rect.x1 = 39;
+  Space_ship_rect.y1 = 21;
+  Space_ship_rect.x2 = 43;
+  Space_ship_rect.y2 = 25;
+  Space_ship_rect_ref.x1 = 41;
+  Space_ship_rect_ref.y1 = 23;
+  Space_ship_rect_ref.x2 = 41;
+  Space_ship_rect_ref.y2 = 23;
 
   Asteroid_points[0].x1 = 69;
   Asteroid_points[0].y1 = 13;
@@ -476,25 +494,60 @@ void Move_space_ship_task(void const * argument)
 
     osThreadYield();
 
+    if(Valor_ADC[0] < 1000)
+    {
+      girar_triangulo_antihorario(&Space_ship_points, &Space_ship_reference);
+      //girar_retangulo_antihorario(&Space_ship_rect, &Space_ship_rect_ref);
+      angle += 45;
+      if(angle == 360)
+        angle = 0;
+    }else if(Valor_ADC[0] > 3000)
+    {
+      girar_triangulo_horario(&Space_ship_points, &Space_ship_reference);
+      //girar_retangulo_horario(&Space_ship_rect, &Space_ship_rect_ref);
+      angle -= 45;
+      if(angle == -360)
+        angle = 0;
+    }
+
+    osThreadYield();
+
     if(Valor_ADC[1] > 3000)
     {
       if(angle == 0)
+      {
         move_XY(0, 1, &Space_ship_points, &Space_ship_reference);
-      else if(angle == 45 || angle == -315)
+        move_XY(0, 1, &Space_ship_rect, &Space_ship_rect_ref);
+
+      }else if(angle == 45 || angle == -315)
+      {  
         move_XY(1, 1, &Space_ship_points, &Space_ship_reference);
-      else if(angle == 90 || angle == -270)
+        move_XY(1, 1, &Space_ship_rect, &Space_ship_rect_ref);
+      }else if(angle == 90 || angle == -270)
+      {  
         move_XY(1, 0, &Space_ship_points, &Space_ship_reference);
-      else if(angle == 135 || angle == -225)
+        move_XY(1, 0, &Space_ship_rect, &Space_ship_rect_ref);
+      }else if(angle == 135 || angle == -225)
+      {  
         move_XY(1, -1, &Space_ship_points, &Space_ship_reference);
-      else if(angle == 180 || angle == -180)
+        move_XY(1, -1, &Space_ship_rect, &Space_ship_rect_ref);
+      }else if(angle == 180 || angle == -180)
+      {
         move_XY(0, -1, &Space_ship_points, &Space_ship_reference);
-      else if(angle == 225 || angle == -135)
+        move_XY(0, -1, &Space_ship_rect, &Space_ship_rect_ref);
+      }else if(angle == 225 || angle == -135)
+      {
         move_XY(-1, -1, &Space_ship_points, &Space_ship_reference);
-      else if(angle == 270 || angle == -90)
+        move_XY(-1, -1, &Space_ship_rect, &Space_ship_rect_ref);
+      }else if(angle == 270 || angle == -90)
+      {  
         move_XY(-1, 0, &Space_ship_points, &Space_ship_reference);
-      else if(angle == 315 || angle == -45)
+        move_XY(-1, 0, &Space_ship_rect, &Space_ship_rect_ref);
+      }else if(angle == 315 || angle == -45)
+      {  
         move_XY(-1, 1, &Space_ship_points, &Space_ship_reference);
-    
+        move_XY(-1, 1, &Space_ship_rect, &Space_ship_rect_ref);
+      }
 
       pt[0].x1 = Space_ship_points.x1; pt[0].y1 = Space_ship_points.y1;
       pt[0].x2 = Space_ship_points.x2; pt[0].y2 = Space_ship_points.y2;
@@ -504,24 +557,20 @@ void Move_space_ship_task(void const * argument)
       pt[1].x2 = pt[2].x2; pt[1].y2 = pt[2].y2;
       pt_ref[1].x1 = pt_ref[2].x1; pt_ref[1].y1 = pt_ref[2].y1;
       pt_ref[1].x2 = pt_ref[2].x2; pt_ref[1].y2 = pt_ref[2].y2;
-      prop = !colisao_linha((struct pontos_t *) &pt, (struct sig_pontos_t *) &pt_ref);
+      prop0 = !colisao_linha((struct pontos_t *) &pt, (struct sig_pontos_t *) &pt_ref);
+
+      pt[0].x1 = Space_ship_rect.x1; pt[0].y1 = Space_ship_rect.y1;
+      pt[0].x2 = Space_ship_rect.x2; pt[0].y2 = Space_ship_rect.y2;
+      pt_ref[0].x1 = Space_ship_rect_ref.x1; pt_ref[0].y1 = Space_ship_rect_ref.y1;
+      pt_ref[0].x2 = Space_ship_rect_ref.x2; pt_ref[0].y2 = Space_ship_rect_ref.y2;
+      pt[1].x1 = Retangulo.x1; pt[1].y1 = Retangulo.y1;
+      pt[1].x2 = Retangulo.x2; pt[1].y2 = Retangulo.y2;
+      pt_ref[1].x1 = Retangulo_ref.x1; pt_ref[1].y1 = Retangulo_ref.y1;
+      pt_ref[1].x2 = Retangulo_ref.x2; pt_ref[1].y2 = Retangulo_ref.y2;
+      prop1 = !colisao_retangulo((struct pontos_t *) &pt, (struct sig_pontos_t *) &pt_ref);
     }
 
     osThreadYield();
-
-    if(Valor_ADC[0] < 1000)
-    {
-      girar_triangulo_antihorario(&Space_ship_points, &Space_ship_reference);
-      angle += 45;
-      if(angle == 360)
-        angle = 0;
-    }else if(Valor_ADC[0] > 3000)
-    {
-      girar_triangulo_horario(&Space_ship_points, &Space_ship_reference);
-      angle -= 45;
-      if(angle == -360)
-        angle = 0;
-    }
 
     osSemaphoreRelease(Draw_semaphoreHandle);
     osThreadYield();
@@ -550,12 +599,15 @@ void Space_ship_task(void const * argument)
     desenha_triangulo(&Space_ship_points, &Space_ship_reference, (uint32_t) 1);
     desenha_hexagono(Asteroid_points, Asteroid_reference, 1);
     desenha_hexagono((struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2], 1);
-    desenha_linha(&pt[3], prop);
+    desenha_retangulo(&Retangulo, &Retangulo_ref, prop1);
+    //desenha_retangulo(&Space_ship_rect, &Space_ship_rect_ref, 1);
+    desenha_linha(&pt[3], prop0);
     osDelay(120);
     
     desenha_triangulo(&Space_ship_points, &Space_ship_reference, (uint32_t) 0);
     desenha_hexagono(Asteroid_points, Asteroid_reference, 0);
     desenha_hexagono((struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2], 0);
+    //desenha_retangulo(&Space_ship_rect, &Space_ship_rect_ref, 0);
 
     osSemaphoreRelease(Draw_semaphoreHandle);
   
