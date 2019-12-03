@@ -28,6 +28,7 @@
 #include "_delay.h"
 #include "defPrincipais.h"
 #include "NOKIA5110_fb.h"
+#include "figuras.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,13 +53,14 @@ DMA_HandleTypeDef hdma_adc1;
 osThreadId Space_shipHandle;
 osSemaphoreId Draw_semaphoreHandle;
 /* USER CODE BEGIN PV */
-uint32_t prop0 = 1, prop1 = 1,ADC_buffer[2], Valor_ADC[2];
+uint32_t prop0 = 1, prop1 = 1, ADC_buffer[2], Valor_ADC[2];
 
 osThreadId LCD_print_handle;
 osThreadId Move_space_ship_handle;
+osThreadId Button_press_handle;
 
-struct pontos_t Space_ship_points, Asteroid_points[4];
-struct sig_pontos_t Space_ship_reference, Asteroid_reference[4];
+struct pontos_t Space_ship_points, Space_ship_boost, Bullet_points[5], Asteroid_points[20];
+struct sig_pontos_t Space_ship_reference, Space_ship_boost_reference, Bullet_reference[5], Asteroid_reference[20];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -119,7 +121,9 @@ int main(void)
 
   // Screen initialization
   goto_XY(0, 0);
-  string_LCD("Start");
+  escreve2fb((unsigned char *) background);
+  goto_XY(9, 3);
+  string_LCD("Press Start");
   imprime_LCD();
 
   while(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_15))
@@ -372,8 +376,8 @@ void LCD_print_task(void const * argument)
 /* USER CODE END Header_Move_space_ship_task */
 void Move_space_ship_task(void const * argument)
 {
-  uint32_t i = 0;
-  int32_t angle = 0;
+  uint32_t i = 0, j;
+  int32_t angle = 0, x = 0, y = 0, x_aux, y_aux;
 
   Space_ship_points.x1 = 39;
   Space_ship_points.y1 = 21;
@@ -387,6 +391,15 @@ void Move_space_ship_task(void const * argument)
   Space_ship_reference.y2 = 22;
   Space_ship_reference.x3 = 41;
   Space_ship_reference.y3 = 22;
+
+  Space_ship_boost.x1 = 39;
+  Space_ship_boost.y1 = 19;
+  Space_ship_boost.x2 = 43;
+  Space_ship_boost.y2 = 19;
+  Space_ship_boost_reference.x1 = 41;
+  Space_ship_boost_reference.y1 = 22;
+  Space_ship_boost_reference.x2 = 41;
+  Space_ship_boost_reference.y2 = 22;
 
   Asteroid_points[0].x1 = 69;
   Asteroid_points[0].y1 = 13;
@@ -471,6 +484,10 @@ void Move_space_ship_task(void const * argument)
     if(Valor_ADC[0] < 1000)
     {
       girar_triangulo_antihorario(&Space_ship_points, &Space_ship_reference);
+      rotate_counter_clock_wise(&Space_ship_boost.x1, &Space_ship_boost.y1, \
+      &Space_ship_boost_reference.x1, &Space_ship_boost_reference.y1);
+      rotate_counter_clock_wise(&Space_ship_boost.x2, &Space_ship_boost.y2, \
+      &Space_ship_boost_reference.x2, &Space_ship_boost_reference.y2);
       angle += 45;
       if(angle == 360)
         angle = 0;
@@ -479,6 +496,10 @@ void Move_space_ship_task(void const * argument)
     }else if(Valor_ADC[0] > 3000)
     {
       girar_triangulo_horario(&Space_ship_points, &Space_ship_reference);
+      rotate_clock_wise(&Space_ship_boost.x1, &Space_ship_boost.y1, \
+      &Space_ship_boost_reference.x1, &Space_ship_boost_reference.y1);
+      rotate_clock_wise(&Space_ship_boost.x2, &Space_ship_boost.y2, \
+      &Space_ship_boost_reference.x2, &Space_ship_boost_reference.y2);
       angle -= 45;
       if(angle == -360)
         angle = 0;
@@ -492,34 +513,77 @@ void Move_space_ship_task(void const * argument)
     {
       if(angle == 0)
       {
-        move_XY(0, 1, &Space_ship_points, &Space_ship_reference);
+        if(y < 3)
+          y++;
       }else if(angle == 45 || angle == -315)
-      {  
-        move_XY(1, 1, &Space_ship_points, &Space_ship_reference);
+      {
+        if(x < 3)
+          x++;
+        if(y < 3)
+          y++;
       }else if(angle == 90 || angle == -270)
-      {  
-        move_XY(1, 0, &Space_ship_points, &Space_ship_reference);
+      {
+        if(x < 3)
+          x++;        
       }else if(angle == 135 || angle == -225)
-      {  
-        move_XY(1, -1, &Space_ship_points, &Space_ship_reference);
+      {
+        if(x < 3)
+          x++;
+        if(y > -3)
+          y--;        
       }else if(angle == 180 || angle == -180)
       {
-        move_XY(0, -1, &Space_ship_points, &Space_ship_reference);
+        if(y > -3)
+          y--;  
       }else if(angle == 225 || angle == -135)
       {
-        move_XY(-1, -1, &Space_ship_points, &Space_ship_reference);
+        if(x > -3)
+          x--;  
+        if(y > -3)
+          y--;  
       }else if(angle == 270 || angle == -90)
-      {  
-        move_XY(-1, 0, &Space_ship_points, &Space_ship_reference);
+      {
+        if(x > -3)
+          x--;  
       }else if(angle == 315 || angle == -45)
+      {
+        if(x > -3)
+          x--;  
+        if(y < 3)
+          y++;  
+      }
+    }
+    
+    x_aux = x; y_aux = y;
+
+    for(j = 3; j > 0; j--)
+    {
+      if(x_aux > 0)
       {  
-        move_XY(-1, 1, &Space_ship_points, &Space_ship_reference);
+        move_XY(1, 0, &Space_ship_points, &Space_ship_reference);
+        move_XY(1, 0, &Space_ship_boost, &Space_ship_boost_reference);
+        x_aux--;
+      }else if(x_aux < 0)
+      {
+        move_XY(-1, 0, &Space_ship_points, &Space_ship_reference);
+        move_XY(-1, 0, &Space_ship_boost, &Space_ship_boost_reference);
+        x_aux++;
       }
 
+      if(y_aux > 0)
+      {  
+        move_XY(0, 1, &Space_ship_points, &Space_ship_reference);
+        move_XY(0, 1, &Space_ship_boost, &Space_ship_boost_reference);
+        y_aux--;
+      }else if(y_aux < 0)
+      {
+        move_XY(0, -1, &Space_ship_points, &Space_ship_reference);
+        move_XY(0, -1, &Space_ship_boost, &Space_ship_boost_reference);
+        y_aux++;
+      }
       prop0 = !(colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, (struct pontos_t *) &Asteroid_points[0], (struct sig_pontos_t *) &Asteroid_reference[0]));
-      prop1 = !(colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, (struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2]));
+      prop1 = !(colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, (struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2])); 
     }
-
     osThreadYield();
 
     osSemaphoreRelease(Draw_semaphoreHandle);
@@ -539,6 +603,8 @@ void Move_space_ship_task(void const * argument)
 void Space_ship_task(void const * argument)
 {
   /* USER CODE BEGIN 5 */
+  struct pontos_t pt;
+  struct sig_pontos_t pt_ref;
   /* Infinite loop */
   for(;;)
   {
@@ -546,11 +612,19 @@ void Space_ship_task(void const * argument)
 
     escreve_Nr_Peq(10,29, Valor_ADC[0], 10);
 		escreve_Nr_Peq(10,39, Valor_ADC[1], 10);
+    if(Valor_ADC[1] > 3000)
+    {
+      copia_pontos(&Space_ship_boost, &Space_ship_boost_reference, &pt, &pt_ref);
+      auto_map_XY(&pt, &pt_ref);
+      desenha_linha(&pt, 1);
+    }
     desenha_triangulo(&Space_ship_points, &Space_ship_reference, (uint32_t) 1);
     desenha_hexagono(Asteroid_points, Asteroid_reference, prop0);
     desenha_hexagono((struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2], prop1);
     osDelay(120);
     
+
+    desenha_linha(&pt, 0);
     desenha_triangulo(&Space_ship_points, &Space_ship_reference, (uint32_t) 0);
     desenha_hexagono(Asteroid_points, Asteroid_reference, 0);
     desenha_hexagono((struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2], 0);
