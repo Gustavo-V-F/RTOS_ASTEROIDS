@@ -309,6 +309,107 @@ void move_XY(int32_t x, int32_t y, struct pontos_t *p, struct sig_pontos_t *ref)
 	}
 }
 
+void min_max_XY(struct pontos_t *p, uint32_t p_size, struct sig_pontos_t *ref)
+{
+	uint32_t x_min = 0, y_min = 0, x_max = 0, y_max = 0;
+	int32_t x_min_ref = 0, y_min_ref = 0, x_max_ref = 0, y_max_ref = 0;
+
+	struct sig_pontos_t pt;
+
+	pt.x1 = p->x1; pt.y1 = p->y1;
+	pt.x2 = p->x2; pt.y2 = p->y2;
+
+	if(ref->x1 < 0)
+		pt.x1 += (MAX_WIDTH+1);
+	else if(ref->x1 > MAX_WIDTH)
+		pt.x1 -= (MAX_WIDTH+1);
+
+	if(ref->x2 < 0)
+		pt.x2 += (MAX_WIDTH+1);
+	else if(ref->x2 > MAX_WIDTH)
+		pt.x2 -= (MAX_WIDTH+1);
+	
+	if(ref->y1 < 0)
+		pt.y1 += (MAX_HEIGHT+1);
+	else if(ref->y1 > MAX_HEIGHT)
+		pt.y1 -= (MAX_HEIGHT+1);
+
+	if(ref->y2 < 0)
+		pt.y2 += (MAX_HEIGHT+1);
+	else if(ref->y2 > MAX_HEIGHT)
+		pt.y2 -= (MAX_HEIGHT+1);
+	
+	if(pt.x1 >= pt.x2)
+	{	
+		x_max = p->x1;
+		x_min = p->x2;
+		x_max_ref = ref->x1;
+		x_min_ref = ref->x2;
+	}else if(pt.x2 > pt.x1)
+	{
+		x_max = p->x2;
+		x_min = p->x1;
+		x_max_ref = ref->x2;
+		x_min_ref = ref->x1;
+	}
+
+	if(pt.y1 >= pt.y2)
+	{
+		y_max = p->y1;
+		y_min = p->y2;
+		y_max_ref = ref->y1;
+		y_min_ref = ref->y2;
+	}else if(pt.y2 > pt.y1)
+	{
+		y_max = p->y2;
+		y_min = p->y1;
+		y_max_ref = ref->y2;
+		y_min_ref = ref->y1;
+	}
+
+	if(p_size == 3)
+	{
+		pt.x3 = p->x3; pt.y3 = p->y3;
+
+		if(ref->x3 < 0)
+			pt.x3 += (MAX_WIDTH+1);
+		else if(ref->x3 > MAX_WIDTH)
+			pt.x3 -= (MAX_WIDTH+1);
+
+		if(ref->y3 < 0)
+			pt.y3 += (MAX_HEIGHT+1);
+		else if(ref->y3 > MAX_HEIGHT)
+			pt.y3 -= (MAX_HEIGHT+1);
+
+		if(pt.x3 >= pt.x1 && pt.x3 >= pt.x2)
+		{
+			x_max = p->x3;
+			x_max_ref = ref->x3;
+		}
+		else if(pt.x3 < pt.x1 && pt.x3 < pt.x2)
+		{
+			x_min = p->x3;
+			x_min_ref = ref->x3;
+		}
+
+		if(pt.y3 >= pt.y1 && pt.y3 >= pt.y2)
+		{
+			y_max = p->y3;
+			y_max_ref = ref->y3;
+		}
+		else if(pt.y3 < pt.y1 && pt.y3 < pt.y2)
+		{
+			y_min = p->y3;
+			y_min_ref = ref->y3;
+		}
+	}
+
+	p->x1 = x_min; p->y1 = y_min;
+	p->x2 = x_max; p->y2 = y_max;
+	ref->x1 = x_min_ref; ref->y1 = y_min_ref; 
+	ref->x2 = x_max_ref; ref->y2 = y_max_ref; 
+}
+
 void rotate_clock_wise(uint32_t *x_p, uint32_t *y_p, int32_t *x0, int32_t *y0)
 {
 	int32_t x1, y1, x2, y2;
@@ -1022,6 +1123,16 @@ void escreve_Nr_Peq(uint32_t x, uint32_t y, int32_t valor, uint32_t quant2Print)
 }
 //----------------------------------------------------------------------------------------------
 
+void copia_pontos(struct pontos_t *fonte, struct sig_pontos_t *fonte_ref, struct pontos_t *destino, struct sig_pontos_t *destino_ref)
+{
+	destino->x1 = fonte->x1; destino->y1 = fonte->y1;
+	destino->x2 = fonte->x2; destino->y2 = fonte->y2;
+	destino->x3 = fonte->x3; destino->y3 = fonte->y3;
+	destino_ref->x1 = fonte_ref->x1; destino_ref->y1 = fonte_ref->y1;
+	destino_ref->x2 = fonte_ref->x2; destino_ref->y2 = fonte_ref->y2;
+	destino_ref->x3 = fonte_ref->x3; destino_ref->y3 = fonte_ref->y3;	
+}
+
 // Função para desenhar um hexágono
 /**
  * 				p3-------p4
@@ -1100,17 +1211,6 @@ void girar_triangulo_antihorario(struct pontos_t *p, struct sig_pontos_t *ref)
 	rotate_counter_clock_wise(&p->x3, &p->y3, &ref->x3, &ref->y3);
 }
 
-void girar_retangulo_horario(struct pontos_t *p, struct sig_pontos_t *ref)
-{
-	rotate_clock_wise(&p->x1, &p->y1, &ref->x1, &ref->y1);
-	rotate_clock_wise(&p->x2, &p->y2, &ref->x2, &ref->y2);
-}
-
-void girar_retangulo_antihorario(struct pontos_t *p, struct sig_pontos_t *ref)
-{
-	rotate_counter_clock_wise(&p->x1, &p->y1, &ref->x1, &ref->y1);
-	rotate_counter_clock_wise(&p->x2, &p->y2, &ref->x2, &ref->y2);
-}
 void girar_hexagono_horario(struct pontos_t *coord, struct sig_pontos_t *ref)
 {
 	rotate_clock_wise(&coord[0].x1, &coord[0].y1, &ref[0].x1, &ref[0].y1);
@@ -1131,19 +1231,17 @@ void girar_hexagono_antihorario(struct pontos_t *coord, struct sig_pontos_t *ref
 	rotate_counter_clock_wise(&coord[1].x3, &coord[1].y3, &ref[1].x3, &ref[1].y3);
 }
 
-uint32_t colisao_linha(struct pontos_t *coord, struct sig_pontos_t *ref)
+uint32_t colisao_linha(struct pontos_t *lin0, struct sig_pontos_t *lin0_ref, struct pontos_t *lin1, struct sig_pontos_t *lin1_ref)
 {
 	uint32_t comp0 = 0, comp1 = 0;
 	int32_t dist0, dist1, div, x1, x2, x3, x4, y1, y2, y3 ,y4;
 	struct pontos_t pt0, pt1;
 
-	pt0.x1 = coord[0].x1; pt0.x2 = coord[0].x2;
-	pt0.y1 = coord[0].y1; pt0.y2 = coord[0].y2;
-	pt1.x1 = coord[1].x1; pt1.x2 = coord[1].x2;
-	pt1.y1 = coord[1].y1; pt1.y2 = coord[1].y2;
+	copia_pontos(lin0, lin0_ref, &pt0, lin0_ref);
+	copia_pontos(lin1, lin1_ref, &pt1, lin1_ref);
 	
-	auto_map_XY(&pt0, &ref[0]);
-	auto_map_XY(&pt1, &ref[1]);
+	auto_map_XY(&pt0, lin0_ref);
+	auto_map_XY(&pt1, lin1_ref);
 
 	x1 = pt0.x1; x2 = pt0.x2; x3 = pt1.x1; x4 = pt1.x2;
 	y1 = pt0.y1; y2 = pt0.y2; y3 = pt1.y1; y4 = pt1.y2;
@@ -1194,19 +1292,17 @@ uint32_t colisao_linha(struct pontos_t *coord, struct sig_pontos_t *ref)
 	return 0;
 }
 
-uint32_t colisao_retangulo(struct pontos_t *coord, struct sig_pontos_t *ref)
+uint32_t colisao_retangulo(struct pontos_t *ret0, struct sig_pontos_t *ret0_ref, struct pontos_t *ret1, struct sig_pontos_t *ret1_ref)
 {
 	uint32_t comp0 = 0, comp1 = 0; 
 	int32_t x1, x2, x3, x4, y1, y2, y3, y4;
 	struct pontos_t pt0, pt1;
 	
-	pt0.x1 = coord[0].x1; pt0.y1 = coord[0].y1;
-	pt0.x2 = coord[0].x2; pt0.y2 = coord[0].y2;
-	pt1.x1 = coord[1].x1; pt1.y1 = coord[1].y1;
-	pt1.x2 = coord[1].x2; pt1.y2 = coord[1].y2;
+	copia_pontos(ret0, ret0_ref, &pt0, ret0_ref);
+	copia_pontos(ret1, ret1_ref, &pt1, ret1_ref);
 	
-	auto_map_XY(&pt0, &ref[0]);
-	auto_map_XY(&pt1, &ref[1]);
+	auto_map_XY(&pt0, ret0_ref);
+	auto_map_XY(&pt1, ret1_ref);
 
 	x1 = pt0.x1; x2 = pt0.x2; y1 = pt0.y1; y2 = pt0.y2;
 	x3 = pt1.x1; x4 = pt1.x2; y3 = pt1.y1; y4 = pt1.y2;
@@ -1249,20 +1345,186 @@ uint32_t colisao_retangulo(struct pontos_t *coord, struct sig_pontos_t *ref)
 
 uint32_t colisao_linha_retangulo(struct pontos_t *lin, struct sig_pontos_t *lin_ref, struct pontos_t *ret, struct sig_pontos_t *ret_ref)
 {
+	struct pontos_t pt0, pt1;
+	struct sig_pontos_t pt0_ref, pt1_ref;
 
+	copia_pontos(lin, lin_ref, &pt0, &pt0_ref);
+	copia_pontos(ret, ret_ref, &pt1, &pt1_ref);
+
+	min_max_XY(&pt0, 2, &pt0_ref);
+
+	if(colisao_retangulo(&pt0, &pt0_ref, &pt1, &pt1_ref))
+	{
+		pt1.x2 = ret->x1;
+		pt1_ref.x2 = ret_ref->x1;
+
+		if(colisao_linha(&pt0, &pt0_ref, &pt1, &pt1_ref))
+			return 1;
+
+		pt1.x1 = ret->x2;
+		pt1.x2 = ret->x2;
+		pt1_ref.x1 = ret_ref->x2;
+		pt1_ref.x2 = ret_ref->x2;
+
+		if(colisao_linha(&pt0, &pt0_ref, &pt1, &pt1_ref))
+			return 1;
+		
+		pt1.x1 = ret->x1; pt1.y1 = ret->y2;
+		pt1_ref.x1 = ret_ref->x1; pt1_ref.y1 = ret_ref->y2;
+
+		if(colisao_linha(&pt0, &pt0_ref, &pt1, &pt1_ref))
+			return 1;
+
+		pt1.y1 = ret->y1;
+		pt1.y2 = ret->y1;
+		pt1_ref.y1 = ret_ref->y1;
+		pt1_ref.y2 = ret_ref->y1;
+
+		if(colisao_linha(&pt0, &pt0_ref, &pt1, &pt1_ref))
+			return 1;
+	}
+
+	return 0;
 }
 
 uint32_t colisao_linha_hexagono(struct pontos_t *lin, struct sig_pontos_t *lin_ref, struct pontos_t *hex, struct sig_pontos_t *hex_ref)
 {
+	struct pontos_t pt0, pt1;
+	struct sig_pontos_t pt0_ref, pt1_ref;
 
+	copia_pontos(lin, lin_ref, &pt0, &pt0_ref);
+	copia_pontos(&hex[0], &hex_ref[0], &pt1, &pt1_ref);
+
+	min_max_XY(&pt0, 2, &pt0_ref);
+	min_max_XY(&pt1, 2, &pt1_ref);
+
+	if(colisao_retangulo(&pt0, &pt0_ref, &pt1, &pt1_ref))
+	{
+		if(colisao_linha(lin, lin_ref, &hex[0], &hex_ref[0]))
+			return 1;
+	}
+
+	pt1.x1 = hex[0].x2; pt1.x2 = hex[0].x3;
+	pt1.y1 = hex[0].y2; pt1.y2 = hex[0].y3;
+	pt1_ref.x1 = hex_ref[0].x2; pt1_ref.x2 = hex_ref[0].x3;
+	pt1_ref.y1 = hex_ref[0].y2; pt1_ref.y2 = hex_ref[0].y3;
+
+	min_max_XY(&pt1, 2, &pt1_ref);
+
+	if(colisao_retangulo(&pt0, &pt0_ref, &pt1, &pt1_ref))
+	{
+		pt1.x1 = hex[0].x2; pt1.x2 = hex[0].x3;
+		pt1.y1 = hex[0].y2; pt1.y2 = hex[0].y3;
+		pt1_ref.x1 = hex_ref[0].x2; pt1_ref.x2 = hex_ref[0].x3;
+		pt1_ref.y1 = hex_ref[0].y2; pt1_ref.y2 = hex_ref[0].y3;
+
+		if(colisao_linha(lin, lin_ref, &pt1, &pt1_ref))
+			return 1;
+	}	
+
+	pt1.x1 = hex[0].x3; pt1.x2 = hex[1].x1;
+	pt1.y1 = hex[0].y3; pt1.y2 = hex[1].y1;
+	pt1_ref.x1 = hex_ref[0].x3; pt1_ref.x2 = hex_ref[1].x1;
+	pt1_ref.y1 = hex_ref[0].y3; pt1_ref.y2 = hex_ref[1].y1;
+
+	min_max_XY(&pt1, 2, &pt1_ref);
+
+	if(colisao_retangulo(&pt0, &pt0_ref, &pt1, &pt1_ref))
+	{
+		pt1.x1 = hex[0].x3; pt1.x2 = hex[1].x1;
+		pt1.y1 = hex[0].y3; pt1.y2 = hex[1].y1;
+		pt1_ref.x1 = hex_ref[0].x3; pt1_ref.x2 = hex_ref[1].x1;
+		pt1_ref.y1 = hex_ref[0].y3; pt1_ref.y2 = hex_ref[1].y1;
+
+		if(colisao_linha(lin, lin_ref, &pt1, &pt1_ref))
+			return 1;
+	}
+
+	pt1.x1 = hex[1].x1; pt1.x2 = hex[1].x2;
+	pt1.y1 = hex[1].y1; pt1.y2 = hex[1].y2;
+	pt1_ref.x1 = hex_ref[1].x1; pt1_ref.x2 = hex_ref[1].x2;
+	pt1_ref.y1 = hex_ref[1].y1; pt1_ref.y2 = hex_ref[1].y2;
+
+	min_max_XY(&pt1, 2, &pt1_ref);
+
+	if(colisao_retangulo(&pt0, &pt0_ref, &pt1, &pt1_ref))
+	{
+		pt1.x1 = hex[1].x1; pt1.x2 = hex[1].x2;
+		pt1.y1 = hex[1].y1; pt1.y2 = hex[1].y2;
+		pt1_ref.x1 = hex_ref[1].x1; pt1_ref.x2 = hex_ref[1].x2;
+		pt1_ref.y1 = hex_ref[1].y1; pt1_ref.y2 = hex_ref[1].y2;
+
+		if(colisao_linha(lin, lin_ref, &pt1, &pt1_ref))
+			return 1;
+	}
+
+	pt1.x1 = hex[1].x2; pt1.x2 = hex[1].x3;
+	pt1.y1 = hex[1].y2; pt1.y2 = hex[1].y3;
+	pt1_ref.x1 = hex_ref[1].x2; pt1_ref.x2 = hex_ref[1].x3;
+	pt1_ref.y1 = hex_ref[1].y2; pt1_ref.y2 = hex_ref[1].y3;
+
+	min_max_XY(&pt1, 2, &pt1_ref);
+
+	if(colisao_retangulo(&pt0, &pt0_ref, &pt1, &pt1_ref))
+	{
+		pt1.x1 = hex[1].x2; pt1.x2 = hex[1].x3;
+		pt1.y1 = hex[1].y2; pt1.y2 = hex[1].y3;
+		pt1_ref.x1 = hex_ref[1].x2; pt1_ref.x2 = hex_ref[1].x3;
+		pt1_ref.y1 = hex_ref[1].y2; pt1_ref.y2 = hex_ref[1].y3;
+
+		if(colisao_linha(lin, lin_ref, &pt1, &pt1_ref))
+			return 1;
+	}
+
+	pt1.x1 = hex[1].x3; pt1.x2 = hex[0].x1;
+	pt1.y1 = hex[1].y3; pt1.y2 = hex[0].y1;
+	pt1_ref.x1 = hex_ref[1].x3; pt1_ref.x2 = hex_ref[0].x1;
+	pt1_ref.y1 = hex_ref[1].y3; pt1_ref.y2 = hex_ref[0].y1;
+
+	min_max_XY(&pt1, 2, &pt1_ref);
+
+	if(colisao_retangulo(&pt0, &pt0_ref, &pt1, &pt1_ref))
+	{
+		pt1.x1 = hex[1].x3; pt1.x2 = hex[0].x1;
+		pt1.y1 = hex[1].y3; pt1.y2 = hex[0].y1;
+		pt1_ref.x1 = hex_ref[1].x3; pt1_ref.x2 = hex_ref[0].x1;
+		pt1_ref.y1 = hex_ref[1].y3; pt1_ref.y2 = hex_ref[0].y1;
+
+		if(colisao_linha(lin, lin_ref, &pt1, &pt1_ref))
+			return 1;
+	}
+
+	return 0;
 }
 
 uint32_t colisao_triangulo_hexagono(struct pontos_t *tri, struct sig_pontos_t *tri_ref, struct pontos_t *hex, struct sig_pontos_t *hex_ref)
 {
+	struct pontos_t pt;
+	struct sig_pontos_t pt_ref;
 
+	copia_pontos(tri, tri_ref, &pt, &pt_ref);
+
+	if(colisao_linha_hexagono(&pt, &pt_ref, hex, hex_ref))
+		return 1;
+	
+	pt.x1 = tri->x2; pt.y1 = tri->y2;
+	pt.x2 = tri->x3; pt.y2 = tri->y3;
+	pt_ref.x1 = tri_ref->x2; pt_ref.y1 = tri_ref->y2;
+	pt_ref.x2 = tri_ref->x3; pt_ref.y2 = tri_ref->y3;
+
+	if(colisao_linha_hexagono(&pt, &pt_ref, hex, hex_ref))
+		return 1;
+
+	pt.x1 = tri->x3; pt.y1 = tri->y3;
+	pt.x2 = tri->x1; pt.y2 = tri->y1;
+	pt_ref.x1 = tri_ref->x3; pt_ref.y1 = tri_ref->y3;
+	pt_ref.x2 = tri_ref->x1; pt_ref.y2 = tri_ref->y1;
+
+	if(colisao_linha_hexagono(&pt, &pt_ref, hex, hex_ref))
+		return 1;
+
+	return 0;
 }
-
-
 
 //----------------------------------------------------------------------------------------------
 
@@ -1331,4 +1593,3 @@ uint32_t round_number(uint32_t number, uint32_t digits)
 			return number-n;
 	}
 }
-

@@ -69,6 +69,7 @@ void goto_XY(uint32_t x, uint32_t y);
 uint32_t index_XY(uint32_t x, uint32_t y);
 void auto_map_XY(struct pontos_t *pt, struct sig_pontos_t *ref);
 void move_XY(int32_t x, int32_t y, struct pontos_t *p, struct sig_pontos_t *ref);
+void min_max_XY(struct pontos_t *p, uint32_t p_size, struct sig_pontos_t *ref);
 void rotate_clock_wise(uint32_t *x, uint32_t *y, int32_t *x0, int32_t *y0);
 void rotate_counter_clock_wise(uint32_t *x, uint32_t *y, int32_t *x0, int32_t *y0);
 void escreve2fb(unsigned char imagem[])	;
@@ -89,17 +90,16 @@ void desenha_fig(struct  pontos_t *p, const struct figura_t *figura);
 void escreve_Nr_Peq(uint32_t x, uint32_t y, int32_t valor, uint32_t quant2Print);
 
 // New Functions
+void copia_pontos(struct pontos_t *fonte, struct sig_pontos_t *fonte_ref, struct pontos_t *destino, struct sig_pontos_t *destino_ref);
 void desenha_retangulo(struct  pontos_t *t, struct sig_pontos_t *ref, uint32_t prop);
 void desenha_triangulo(struct  pontos_t *p, struct sig_pontos_t *ref, uint32_t prop);
 void desenha_hexagono(struct pontos_t *coord, struct sig_pontos_t *ref, uint32_t prop);
 void girar_triangulo_horario(struct pontos_t *p, struct sig_pontos_t *ref);
 void girar_triangulo_antihorario(struct pontos_t *p, struct sig_pontos_t *ref);
-void girar_retangulo_horario(struct pontos_t *p, struct sig_pontos_t *ref);
-void girar_retangulo_antihorario(struct pontos_t *p, struct sig_pontos_t *ref);
 void girar_hexagono_horario(struct pontos_t *coord, struct sig_pontos_t *ref);
 void girar_hexagono_antihorario(struct pontos_t *coord, struct sig_pontos_t *ref);
-uint32_t colisao_linha(struct pontos_t *coord, struct sig_pontos_t *ref);
-uint32_t colisao_retangulo(struct pontos_t *coord, struct sig_pontos_t *ref);
+uint32_t colisao_linha(struct pontos_t *lin0, struct sig_pontos_t *lin0_ref, struct pontos_t *lin1, struct sig_pontos_t *lin1_ref);
+uint32_t colisao_retangulo(struct pontos_t *ret0, struct sig_pontos_t *ret0_ref, struct pontos_t *ret1, struct sig_pontos_t *ret1_ref);
 uint32_t colisao_linha_retangulo(struct pontos_t *lin, struct sig_pontos_t *lin_ref, struct pontos_t *ret, struct sig_pontos_t *ret_ref);
 uint32_t colisao_linha_hexagono(struct pontos_t *lin, struct sig_pontos_t *lin_ref, struct pontos_t *hex, struct sig_pontos_t *hex_ref);
 uint32_t colisao_triangulo_hexagono(struct pontos_t *tri, struct sig_pontos_t *tri_ref, struct pontos_t *hex, struct sig_pontos_t *hex_ref);
