@@ -53,14 +53,16 @@ DMA_HandleTypeDef hdma_adc1;
 osThreadId Space_shipHandle;
 osSemaphoreId Draw_semaphoreHandle;
 /* USER CODE BEGIN PV */
-uint32_t prop0 = 1, prop1 = 1, ADC_buffer[2], Valor_ADC[2];
+unsigned int uSeed = 1;
+int32_t Asteroid_direction[10];
+uint32_t Collision[6], Button_press_flag = 0, Button_press_times = 0, ADC_buffer[2], Valor_ADC[2];
 
 osThreadId LCD_print_handle;
 osThreadId Move_space_ship_handle;
 osThreadId Button_press_handle;
 
-struct pontos_t Space_ship_points, Space_ship_boost, Bullet_points[5], Asteroid_points[20];
-struct sig_pontos_t Space_ship_reference, Space_ship_boost_reference, Bullet_reference[5], Asteroid_reference[20];
+struct pontos_t Space_ship_points, Space_ship_boost, Bullet_points, Asteroid_points[10];
+struct sig_pontos_t Space_ship_reference, Space_ship_boost_reference, Bullet_reference, Asteroid_reference[20];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -73,6 +75,7 @@ void Space_ship_task(void const * argument);
 /* USER CODE BEGIN PFP */
 void LCD_print_task(void const * argument);
 void Move_space_ship_task(void const * argument);
+void Button_press_task(void const * argument);
 
 /* USER CODE END PFP */
 
@@ -88,7 +91,6 @@ void Move_space_ship_task(void const * argument);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-  unsigned int uSeed = 1;
   /* USER CODE END 1 */
   
 
@@ -169,8 +171,11 @@ int main(void)
   osThreadDef(LCD_print, LCD_print_task, osPriorityNormal, 0, 100);
   LCD_print_handle = osThreadCreate(osThread(LCD_print), NULL);
   
-  osThreadDef(Move_space_ship, Move_space_ship_task, osPriorityNormal, 0, 100);
+  osThreadDef(Move_space_ship, Move_space_ship_task, osPriorityNormal, 0, 120);
   Move_space_ship_handle = osThreadCreate(osThread(Move_space_ship), NULL);
+
+  osThreadDef(Button_press, Button_press_task, osPriorityNormal, 0, 64);
+  Button_press_handle = osThreadCreate(osThread(Button_press), NULL);
 
   /* USER CODE END RTOS_THREADS */
 
@@ -359,13 +364,151 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_LCD_print_task */
 void LCD_print_task(void const * argument)
 {
+  int32_t k , comp = 0, random0, random1;
   /* Infinite loop */
   for(;;)
   {
+    comp = 1;
+
+    for(k = 4; k >= 0; k--)
+    {
+      comp &= Collision[k];  
+    }
+
+    if(comp == 1)
+    {
+      Collision[5] = 1;
+      goto_XY(20, 1);
+      string_LCD("You won!");
+    }
+
+    if(Collision[5])
+    {
+      for(k = 5; k >= 0; k--)
+        Collision[k] = 0;
+
+      goto_XY(20, 2);
+      string_LCD("Restart?");
+      imprime_LCD();
+
+      _delay_ms(17);
+
+      while(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_15))
+      {
+        uSeed++;
+      }
+
+      vSrand(uSeed);
+
+      limpa_LCD();
+      imprime_LCD();
+      _delay_ms(17);
+
+      Space_ship_points.x1 = 39;
+      Space_ship_points.y1 = 21;
+      Space_ship_points.x2 = 41;
+      Space_ship_points.y2 = 25;
+      Space_ship_points.x3 = 43;
+      Space_ship_points.y3 = 21;
+      Space_ship_reference.x1 = 41;
+      Space_ship_reference.y1 = 22;
+      Space_ship_reference.x2 = 41;
+      Space_ship_reference.y2 = 22;
+      Space_ship_reference.x3 = 41;
+      Space_ship_reference.y3 = 22;
+
+      Space_ship_boost.x1 = 39;
+      Space_ship_boost.y1 = 19;
+      Space_ship_boost.x2 = 43;
+      Space_ship_boost.y2 = 19;
+      Space_ship_boost_reference.x1 = 41;
+      Space_ship_boost_reference.y1 = 22;
+      Space_ship_boost_reference.x2 = 41;
+      Space_ship_boost_reference.y2 = 22;
+
+      // Inicialização asteróides
+      for (k = 8; k >= 0; k-=2)
+      {
+        Asteroid_points[k].x1 = 37;
+        Asteroid_points[k].y1 = 29;
+        Asteroid_points[k].x2 = 33;
+        Asteroid_points[k].y2 = 23;
+        Asteroid_points[k].x3 = 37;
+        Asteroid_points[k].y3 = 17;
+        Asteroid_points[k+1].x1 = 45;
+        Asteroid_points[k+1].y1 = 17;
+        Asteroid_points[k+1].x2 = 49;
+        Asteroid_points[k+1].y2 = 23;
+        Asteroid_points[k+1].x3 = 45;
+        Asteroid_points[k+1].y3 = 29;
+        Asteroid_reference[k].x1 = 41;
+        Asteroid_reference[k].x2 = 41;
+        Asteroid_reference[k].x3 = 41;
+        Asteroid_reference[k].y1 = 23;
+        Asteroid_reference[k].y2 = 23;
+        Asteroid_reference[k].y3 = 23;
+        Asteroid_reference[k+1].x1 = 41;
+        Asteroid_reference[k+1].x2 = 41;
+        Asteroid_reference[k+1].x3 = 41;
+        Asteroid_reference[k+1].y1 = 23;
+        Asteroid_reference[k+1].y2 = 23;
+        Asteroid_reference[k+1].y3 = 23;
+
+        random0 = ulRand() % 8;
+        if(random0 == 0)
+        {
+          Asteroid_direction[k] = 0;
+          Asteroid_direction[k+1] = 1;
+        }else if(random0 == 1)
+        {
+          Asteroid_direction[k] = 1;
+          Asteroid_direction[k+1] = 1;
+        }else if(random0 == 2)
+        {
+          Asteroid_direction[k] = 1;
+          Asteroid_direction[k+1] = 0;
+        }else if(random0 == 3)
+        {
+          Asteroid_direction[k] = 1;
+          Asteroid_direction[k+1] = -1;   
+        }else if(random0 == 4)
+        {
+          Asteroid_direction[k] = 0;
+          Asteroid_direction[k+1] = -1;
+        }else if(random0 == 5)
+        {
+          Asteroid_direction[k] = -1;
+          Asteroid_direction[k+1] = -1;
+        }else if(random0 == 6)
+        {
+          Asteroid_direction[k] = -1;
+          Asteroid_direction[k+1] = 0;
+        }else if(random0 == 7)
+        {
+          Asteroid_direction[k] = -1;
+          Asteroid_direction[k+1] = 1;
+        }
+
+        if(k >= 5)
+        {
+          random0 = (ulRand() % 20);
+          random1 = (ulRand() % 10);
+          move_XY(random0+41, random1+23, (struct pontos_t *) &Asteroid_points[k], (struct sig_pontos_t *) &Asteroid_reference[k]);
+          move_XY(random0+41, random1+23, (struct pontos_t *) &Asteroid_points[k+1], (struct sig_pontos_t *) &Asteroid_reference[k+1]);
+        }else
+        {
+          random0 = (ulRand() % 20);
+          random1 = (ulRand() % 10);
+          move_XY(random0-41, random1-23, (struct pontos_t *) &Asteroid_points[k], (struct sig_pontos_t *) &Asteroid_reference[k]);
+          move_XY(random0-41, random1-23, (struct pontos_t *) &Asteroid_points[k+1], (struct sig_pontos_t *) &Asteroid_reference[k+1]);
+        }
+      } 
+    }
     imprime_LCD();
-    osDelay(17);
-  } 
-}
+    osThreadSetPriority(LCD_print_handle, 0);
+    osThreadYield();
+  }
+} 
 
 /* USER CODE BEGIN Header_Move_space_ship_task */
 /**
@@ -376,8 +519,9 @@ void LCD_print_task(void const * argument)
 /* USER CODE END Header_Move_space_ship_task */
 void Move_space_ship_task(void const * argument)
 {
-  uint32_t i = 0, j;
-  int32_t angle = 0, x = 0, y = 0, x_aux, y_aux;
+  uint32_t i = 0, j, l;
+  int32_t k, random0, random1, angle = 0, x = 0, y = 0, x_aux, y_aux, \
+  button_x = 0, button_y = 0, button_x_aux, button_y_aux;
 
   Space_ship_points.x1 = 39;
   Space_ship_points.y1 = 21;
@@ -401,57 +545,84 @@ void Move_space_ship_task(void const * argument)
   Space_ship_boost_reference.x2 = 41;
   Space_ship_boost_reference.y2 = 22;
 
-  Asteroid_points[0].x1 = 69;
-  Asteroid_points[0].y1 = 13;
-  Asteroid_points[0].x2 = 65;
-  Asteroid_points[0].y2 = 7;
-  Asteroid_points[0].x3 = 69;
-  Asteroid_points[0].y3 = 1;
-  Asteroid_points[1].x1 = 77;
-  Asteroid_points[1].y1 = 1;
-  Asteroid_points[1].x2 = 81;
-  Asteroid_points[1].y2 = 7;
-  Asteroid_points[1].x3 = 77;
-  Asteroid_points[1].y3 = 13;
+  // Inicialização asteróides
+  for (k = 8; k >= 0; k-=2)
+  {
+    Asteroid_points[k].x1 = 37;
+    Asteroid_points[k].y1 = 29;
+    Asteroid_points[k].x2 = 33;
+    Asteroid_points[k].y2 = 23;
+    Asteroid_points[k].x3 = 37;
+    Asteroid_points[k].y3 = 17;
+    Asteroid_points[k+1].x1 = 45;
+    Asteroid_points[k+1].y1 = 17;
+    Asteroid_points[k+1].x2 = 49;
+    Asteroid_points[k+1].y2 = 23;
+    Asteroid_points[k+1].x3 = 45;
+    Asteroid_points[k+1].y3 = 29;
+    Asteroid_reference[k].x1 = 41;
+    Asteroid_reference[k].x2 = 41;
+    Asteroid_reference[k].x3 = 41;
+    Asteroid_reference[k].y1 = 23;
+    Asteroid_reference[k].y2 = 23;
+    Asteroid_reference[k].y3 = 23;
+    Asteroid_reference[k+1].x1 = 41;
+    Asteroid_reference[k+1].x2 = 41;
+    Asteroid_reference[k+1].x3 = 41;
+    Asteroid_reference[k+1].y1 = 23;
+    Asteroid_reference[k+1].y2 = 23;
+    Asteroid_reference[k+1].y3 = 23;
 
-  Asteroid_reference[0].x1 = 73;
-  Asteroid_reference[0].x2 = 73;
-  Asteroid_reference[0].x3 = 73;
-  Asteroid_reference[0].y1 = 7;
-  Asteroid_reference[0].y2 = 7;
-  Asteroid_reference[0].y3 = 7;
-  Asteroid_reference[1].x1 = 73;
-  Asteroid_reference[1].x2 = 73;
-  Asteroid_reference[1].x3 = 73;
-  Asteroid_reference[1].y1 = 7;
-  Asteroid_reference[1].y2 = 7;
-  Asteroid_reference[1].y3 = 7;
+    random0 = ulRand() % 8;
+    if(random0 == 0)
+    {
+      Asteroid_direction[k] = 0;
+      Asteroid_direction[k+1] = 1;
+    }else if(random0 == 1)
+    {
+      Asteroid_direction[k] = 1;
+      Asteroid_direction[k+1] = 1;
+    }else if(random0 == 2)
+    {
+      Asteroid_direction[k] = 1;
+      Asteroid_direction[k+1] = 0;
+    }else if(random0 == 3)
+    {
+      Asteroid_direction[k] = 1;
+      Asteroid_direction[k+1] = -1;   
+    }else if(random0 == 4)
+    {
+      Asteroid_direction[k] = 0;
+      Asteroid_direction[k+1] = -1;
+    }else if(random0 == 5)
+    {
+      Asteroid_direction[k] = -1;
+      Asteroid_direction[k+1] = -1;
+    }else if(random0 == 6)
+    {
+      Asteroid_direction[k] = -1;
+      Asteroid_direction[k+1] = 0;
+    }else if(random0 == 7)
+    {
+      Asteroid_direction[k] = -1;
+      Asteroid_direction[k+1] = 1;
+    }
 
-  Asteroid_points[2].x1 = 6;
-  Asteroid_points[2].y1 = 46;
-  Asteroid_points[2].x2 = 2;
-  Asteroid_points[2].y2 = 40;
-  Asteroid_points[2].x3 = 6;
-  Asteroid_points[2].y3 = 34;
-  Asteroid_points[3].x1 = 14;
-  Asteroid_points[3].y1 = 34;
-  Asteroid_points[3].x2 = 18;
-  Asteroid_points[3].y2 = 40;
-  Asteroid_points[3].x3 = 14;
-  Asteroid_points[3].y3 = 46;
+    if(k >= 5)
+    {
+      random0 = (ulRand() % 20);
+      random1 = (ulRand() % 10);
+      move_XY(random0+41, random1+23, (struct pontos_t *) &Asteroid_points[k], (struct sig_pontos_t *) &Asteroid_reference[k]);
+      move_XY(random0+41, random1+23, (struct pontos_t *) &Asteroid_points[k+1], (struct sig_pontos_t *) &Asteroid_reference[k+1]);
+    }else
+    {
+      random0 = (ulRand() % 20);
+      random1 = (ulRand() % 10);
+      move_XY(random0-41, random1-23, (struct pontos_t *) &Asteroid_points[k], (struct sig_pontos_t *) &Asteroid_reference[k]);
+      move_XY(random0-41, random1-23, (struct pontos_t *) &Asteroid_points[k+1], (struct sig_pontos_t *) &Asteroid_reference[k+1]);
+    }
+  }
 
-  Asteroid_reference[2].x1 = 10;
-  Asteroid_reference[2].x2 = 10;
-  Asteroid_reference[2].x3 = 10;
-  Asteroid_reference[2].y1 = 40;
-  Asteroid_reference[2].y2 = 40;
-  Asteroid_reference[2].y3 = 40;
-  Asteroid_reference[3].x1 = 10;
-  Asteroid_reference[3].x2 = 10;
-  Asteroid_reference[3].x3 = 10;
-  Asteroid_reference[3].y1 = 40;
-  Asteroid_reference[3].y2 = 40;
-  Asteroid_reference[3].y3 = 40;
   /* Infinite loop */
   for(;;)
   {
@@ -459,31 +630,41 @@ void Move_space_ship_task(void const * argument)
 
     if(i < 360)
     {
-      girar_hexagono_horario(Asteroid_points, Asteroid_reference);
-      //girar_hexagono_antihorario((struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2]);
-      
-      prop0 = !(colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, (struct pontos_t *) &Asteroid_points[0], (struct sig_pontos_t *) &Asteroid_reference[0]));
-      prop1 = !(colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, (struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2]));
+      for(k = 8; k >= 0; k-=2)
+      {
+        if(k >= 5)
+          girar_hexagono_antihorario((struct pontos_t *) &Asteroid_points[k], (struct sig_pontos_t *) &Asteroid_reference[k]);
+        else
+          girar_hexagono_horario((struct pontos_t *) &Asteroid_points[k], (struct sig_pontos_t *) &Asteroid_reference[k]);
+
+        if(Collision[k>>1] == 0)
+          Collision[5] |= colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, &Asteroid_points[k], &Asteroid_reference[k]);
+
+        move_XY(Asteroid_direction[k], Asteroid_direction[k+1], (struct pontos_t *) &Asteroid_points[k], (struct sig_pontos_t *) &Asteroid_reference[k]);
+        move_XY(Asteroid_direction[k], Asteroid_direction[k+1], (struct pontos_t *) &Asteroid_points[k+1], (struct sig_pontos_t *) &Asteroid_reference[k+1]);
+        
+        if(Collision[k>>1] == 0)
+          Collision[5] |= colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, &Asteroid_points[k], &Asteroid_reference[k]);
+      }
 
       i += 30;
 
-      if(i == 180)
+      if(i == 360)
       {
-        Asteroid_points[0].x3++;
-        Asteroid_points[1].x1--;
-      }else if(i == 360)
-      {
-        Asteroid_points[0].x1--;
-        Asteroid_points[1].x3++;
         i = 0;
       }
     }
 
-    osThreadYield();
-
     if(Valor_ADC[0] < 1000)
     {
       girar_triangulo_antihorario(&Space_ship_points, &Space_ship_reference);
+
+      for(k = 8; k >= 0; k-=2)
+      {
+        if(Collision[k>>1] == 0)
+          Collision[5] |= colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, &Asteroid_points[k], &Asteroid_reference[k]);
+      }
+
       rotate_counter_clock_wise(&Space_ship_boost.x1, &Space_ship_boost.y1, \
       &Space_ship_boost_reference.x1, &Space_ship_boost_reference.y1);
       rotate_counter_clock_wise(&Space_ship_boost.x2, &Space_ship_boost.y2, \
@@ -491,11 +672,16 @@ void Move_space_ship_task(void const * argument)
       angle += 45;
       if(angle == 360)
         angle = 0;
-      prop0 = !(colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, (struct pontos_t *) &Asteroid_points[0], (struct sig_pontos_t *) &Asteroid_reference[0]));
-      prop1 = !(colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, (struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2]));
     }else if(Valor_ADC[0] > 3000)
     {
       girar_triangulo_horario(&Space_ship_points, &Space_ship_reference);
+
+      for(k = 8; k >= 0; k-=2)
+      {
+        if(Collision[k>>1] == 0)
+          Collision[5] |= colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, &Asteroid_points[k], &Asteroid_reference[k]);
+      }
+
       rotate_clock_wise(&Space_ship_boost.x1, &Space_ship_boost.y1, \
       &Space_ship_boost_reference.x1, &Space_ship_boost_reference.y1);
       rotate_clock_wise(&Space_ship_boost.x2, &Space_ship_boost.y2, \
@@ -503,11 +689,7 @@ void Move_space_ship_task(void const * argument)
       angle -= 45;
       if(angle == -360)
         angle = 0;
-      prop0 = !(colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, (struct pontos_t *) &Asteroid_points[0], (struct sig_pontos_t *) &Asteroid_reference[0]));
-      prop1 = !(colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, (struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2]));
     }
-
-    osThreadYield();
 
     if(Valor_ADC[1] > 3000)
     {
@@ -570,6 +752,11 @@ void Move_space_ship_task(void const * argument)
         x_aux++;
       }
 
+      for(k = 8; k >= 0; k-=2)
+      {
+        if(Collision[k>>1] == 0)
+          Collision[5] |= colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, &Asteroid_points[k], &Asteroid_reference[k]);
+      }
       if(y_aux > 0)
       {  
         move_XY(0, 1, &Space_ship_points, &Space_ship_reference);
@@ -581,13 +768,116 @@ void Move_space_ship_task(void const * argument)
         move_XY(0, -1, &Space_ship_boost, &Space_ship_boost_reference);
         y_aux++;
       }
-      prop0 = !(colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, (struct pontos_t *) &Asteroid_points[0], (struct sig_pontos_t *) &Asteroid_reference[0]));
-      prop1 = !(colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, (struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2])); 
-    }
-    osThreadYield();
 
+      for(k = 8; k >= 0; k-=2)
+      {
+        if(Collision[k>>1] == 0)
+          Collision[5] |= colisao_triangulo_hexagono(&Space_ship_points, &Space_ship_reference, &Asteroid_points[k], &Asteroid_reference[k]);
+      }
+    }
+
+    if(Button_press_flag)
+    {
+      if(angle == 0)
+      {
+        button_x = 0;
+        button_y = 1;
+      }else if(angle == 45 || angle == -315)
+      {
+        button_x = 1;
+        button_y = 1;
+      }else if(angle == 90 || angle == -270)
+      {
+        button_x = 1;
+        button_y = 0; 
+      }else if(angle == 135 || angle == -225)
+      {
+        button_x = 1;
+        button_y = -1;   
+      }else if(angle == 180 || angle == -180)
+      {
+        button_x = 0;
+        button_y = -1;
+      }else if(angle == 225 || angle == -135)
+      {
+        button_x = -1;
+        button_y = -1;
+      }else if(angle == 270 || angle == -90)
+      {
+        button_x = -1;
+        button_y = 0;
+      }else if(angle == 315 || angle == -45)
+      {
+        button_x = -1;
+        button_y = 1;
+      }
+
+      if(button_x_aux == 0 && button_y_aux == 0)
+      {
+        button_x_aux = button_x;
+        button_y_aux = button_y;
+
+        Bullet_points.x2 = Space_ship_points.x2;
+        Bullet_points.y2 = Space_ship_points.y2;
+        Bullet_reference.x2 = Space_ship_reference.x2;
+        Bullet_reference.y2 = Space_ship_reference.y2;
+        move_XY(-button_x, -button_y, &Bullet_points, &Bullet_reference);
+
+        Bullet_points.x1 = Space_ship_points.x2;
+        Bullet_points.y1 = Space_ship_points.y2;
+        Bullet_reference.x1 = Space_ship_reference.x2;
+        Bullet_reference.y1 = Space_ship_reference.y2;
+      }
+
+      for(l = 2; l > 0; l--)
+      {
+        move_XY(button_x_aux, button_y_aux, &Bullet_points, &Bullet_reference);
+        Button_press_times++;
+
+        for(k = 8; k >= 0; k-=2)
+        {  if(Collision[k>>1] == 0)
+            Collision[k>>1] |= colisao_linha_hexagono(&Bullet_points, &Bullet_reference, (struct pontos_t *) &Asteroid_points[k], (struct sig_pontos_t *) &Asteroid_reference[k]);
+        }
+      }
+
+      if(Button_press_times == 10)
+      {
+        button_x_aux = 0;
+        button_y_aux = 0;
+        Button_press_times = 0;
+        Button_press_flag = 0;
+      }
+    }
     osSemaphoreRelease(Draw_semaphoreHandle);
+
+    if(Collision[5])
+    {
+      i = 0, j = 0;
+      angle = 0, x = 0, y = 0, x_aux = 0, y_aux = 0;
+      button_x = 0, button_y = 0, button_x_aux = 0, button_y_aux = 0;
+      osThreadSetPriority(LCD_print_handle, 1);
+    }
+
     osThreadYield();
+  }
+}
+
+/* USER CODE BEGIN Header_Button_press_task */
+/**
+  * @brief  Function implementing the Button_press thread.
+  * @param  argument: Not used 
+  * @retval None
+  */
+/* USER CODE END Header_Button_press_task */
+void Button_press_task(void const * argument)
+{
+  /* Infinite loop */
+  for(;;)
+  {
+    if(!HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_15))
+      Button_press_flag = 1;
+
+    osDelay(20);
   }
 }
 
@@ -603,6 +893,7 @@ void Move_space_ship_task(void const * argument)
 void Space_ship_task(void const * argument)
 {
   /* USER CODE BEGIN 5 */
+  int32_t k;
   struct pontos_t pt;
   struct sig_pontos_t pt_ref;
   /* Infinite loop */
@@ -610,8 +901,19 @@ void Space_ship_task(void const * argument)
   {
     osSemaphoreWait(Draw_semaphoreHandle, osWaitForever);
 
-    escreve_Nr_Peq(10,29, Valor_ADC[0], 10);
-		escreve_Nr_Peq(10,39, Valor_ADC[1], 10);
+    for(k = 8; k >= 0; k-=2)
+    {
+      if(!Collision[k>>1])
+        desenha_hexagono((struct pontos_t *) &Asteroid_points[k], (struct sig_pontos_t *) &Asteroid_reference[k], 1);      
+    }
+
+    if(Button_press_times > 0)
+    {
+      copia_pontos(&Bullet_points, &Bullet_reference, &pt, &Bullet_reference);
+      auto_map_XY(&pt, &Bullet_reference);
+      desenha_linha(&pt, 1);
+    }
+
     if(Valor_ADC[1] > 3000)
     {
       copia_pontos(&Space_ship_boost, &Space_ship_boost_reference, &pt, &pt_ref);
@@ -619,15 +921,24 @@ void Space_ship_task(void const * argument)
       desenha_linha(&pt, 1);
     }
     desenha_triangulo(&Space_ship_points, &Space_ship_reference, (uint32_t) 1);
-    desenha_hexagono(Asteroid_points, Asteroid_reference, prop0);
-    desenha_hexagono((struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2], prop1);
     osDelay(120);
     
+    for(k = 8; k >= 0; k-=2)
+    {
+      desenha_hexagono((struct pontos_t *) &Asteroid_points[k], (struct sig_pontos_t *) &Asteroid_reference[k], 0);
+    }
 
+    if(Button_press_times > 0)
+    {
+      copia_pontos(&Bullet_points, &Bullet_reference, &pt, &Bullet_reference);
+      auto_map_XY(&pt, &Bullet_reference);
+      desenha_linha(&pt, 0);
+    }
+
+    copia_pontos(&Space_ship_boost, &Space_ship_boost_reference, &pt, &pt_ref);
+    auto_map_XY(&pt, &pt_ref);
     desenha_linha(&pt, 0);
     desenha_triangulo(&Space_ship_points, &Space_ship_reference, (uint32_t) 0);
-    desenha_hexagono(Asteroid_points, Asteroid_reference, 0);
-    desenha_hexagono((struct pontos_t *) &Asteroid_points[2], (struct sig_pontos_t *) &Asteroid_reference[2], 0);
 
     osSemaphoreRelease(Draw_semaphoreHandle);
   
